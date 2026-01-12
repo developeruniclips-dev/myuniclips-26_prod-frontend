@@ -1,0 +1,70 @@
+.scholar-dashboard-page {
+  height: 100vh;
+  overflow: hidden;
+}
+
+.dashboard-scroll {
+  height: calc(100vh - 80px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: 30px;
+}
+
+.dashboard-stat-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dashboard-stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+}
+
+.stat-icon {
+  width: 55px;
+  height: 55px;
+  background: #eef2ff;
+  color: #4f46e5;
+}
+
+.dashboard-table thead {
+  background: #f1f5f9;
+}
+
+.dashboard-table th {
+  font-weight: 600;
+  color: #475569;
+}
+
+.dashboard-table td {
+  color: #334155;
+}
+
+.dashboard-table tr:hover {
+  background: #f8fafc;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.dashboard-table .badge {
+  font-size: 0.75rem;
+  padding: 6px 10px;
+  border-radius: 10px;
+}
+
+
+/* Soft colors for different card types */
+.stat-earnings {
+  background: #4f46e5;   /* Indigo */
+}
+
+.stat-courses {
+  background: #0ea5e9;   /* Sky blue */
+}
+
+.stat-sales {
+  background: #10b981;   /* Green */
+}
+
+.stat-month {
+  background: #f59e0b;   /* Amber */
+}

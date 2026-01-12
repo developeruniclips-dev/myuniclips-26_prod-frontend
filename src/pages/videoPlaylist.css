@@ -1,0 +1,95 @@
+.video-playlist-section {
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  min-height: 100vh;
+  padding-top: 100px;
+  padding-bottom: 3rem;
+}
+
+.video-player-card {
+  border: none;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+}
+
+.video-player-card video {
+  width: 100%;
+  max-height: 500px;
+  background: #000;
+}
+
+.playlist-card {
+  border: none;
+  border-radius: 15px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.list-group-item {
+  cursor: pointer;
+  border: none;
+  border-bottom: 1px solid var(--border-color);
+  transition: all 0.3s ease;
+  padding: 1rem;
+}
+
+.list-group-item:hover {
+  background-color: #f8fafc;
+  transform: translateX(5px);
+}
+
+.list-group-item.active {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: white;
+  border-radius: 10px;
+  margin: 0.25rem 0.5rem;
+  transform: translateX(0);
+}
+
+.video-info {
+  background: white;
+  border-radius: 0 0 20px 20px;
+  padding: 2rem;
+}
+
+.video-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: var(--text-dark);
+}
+
+.video-meta {
+  display: flex;
+  gap: 2rem;
+  color: var(--text-light);
+  margin-bottom: 1.5rem;
+}
+
+.price-badge {
+  background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+  color: white;
+  padding: 0.5rem 1.5rem;
+  border-radius: 25px;
+  font-weight: 600;
+  font-size: 1.2rem;
+}
+
+.free-badge {
+  background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+}
+
+.purchase-button {
+  background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+  border: none;
+  padding: 1rem 2rem;
+  font-weight: 600;
+  border-radius: 10px;
+  transition: all 0.3s ease;
+}
+
+.purchase-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(245,158,11,0.3);
+}

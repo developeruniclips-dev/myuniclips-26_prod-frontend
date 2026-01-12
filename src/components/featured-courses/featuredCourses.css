@@ -1,0 +1,22 @@
+.course-card {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.course-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 24px rgba(99, 102, 241, 0.2) !important;
+}
+
+.course-card video {
+  border-radius: 0;
+  transition: transform 0.3s ease;
+}
+
+.course-card:hover video {
+  transform: scale(1.05);
+}
+
+.card-body {
+  padding: 1.5rem;
+}

@@ -1,0 +1,32 @@
+.vision-mission-section {
+  background-color: #f9fafc;
+}
+
+.vision-mission-section h1 {
+  color: #003366;
+  font-size: 2.2rem;
+}
+
+.vision-mission-section h4 {
+  color: #003366;
+}
+
+.vision-mission-section p {
+  font-size: 1.1rem;
+  line-height: 1.8;
+  color: #555;
+}
+
+@media (max-width: 768px) {
+  .vision-mission-section h1 {
+    text-align: center;
+  }
+
+  .vision-mission-section p {
+    text-align: center;
+  }
+
+  .vision-mission-section h4 {
+    text-align: center;
+  }
+}

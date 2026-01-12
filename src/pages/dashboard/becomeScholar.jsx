@@ -1,0 +1,411 @@
+import { useState, useEffect } from 'react';
+import { Container, Row, Col, Card } from 'react-bootstrap';
+import { useAuth } from '../../context/temp';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import './dashboard.css'
+
+function BecomeScholar() {
+    const { user } = useAuth();
+    const navigate = useNavigate();
+    const [formData, setFormData] = useState({
+        university: '',
+        degree: '',
+        year: ''
+    });
+    // TASK CARD FEATURE - Uncomment when ready to enable
+    // const [taskCard, setTaskCard] = useState(null);
+    // const [taskCardPreview, setTaskCardPreview] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [degreePrograms, setDegreePrograms] = useState([]);
+    const [loadingPrograms, setLoadingPrograms] = useState(true);
+
+    // Fetch available degree programs on mount
+    useEffect(() => {
+        const fetchPrograms = async () => {
+            try {
+                const response = await axios.get(
+                    `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/subjects/programs/all`
+                );
+                setDegreePrograms(response.data);
+            } catch (err) {
+                console.error('Error fetching degree programs:', err);
+            } finally {
+                setLoadingPrograms(false);
+            }
+        };
+        fetchPrograms();
+    }, []);
+
+    // Don't redirect if not logged in - allow them to see the page
+    // They'll be prompted to login when they try to submit
+
+    const handleChange = (e) => {
+        setFormData({
+            ...formData,
+            [e.target.name]: e.target.value
+        });
+    };
+
+    // TASK CARD FEATURE - Uncomment when ready to enable
+    // const handleTaskCardChange = (e) => {
+    //     const file = e.target.files[0];
+    //     if (file) {
+    //         // Validate file type
+    //         const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+    //         if (!allowedTypes.includes(file.type)) {
+    //             setError('Please upload a valid image (JPG, PNG) or PDF file');
+    //             return;
+    //         }
+    //         // Validate file size (max 5MB)
+    //         if (file.size > 5 * 1024 * 1024) {
+    //             setError('File size must be less than 5MB');
+    //             return;
+    //         }
+    //         setTaskCard(file);
+    //         // Create preview for images
+    //         if (file.type.startsWith('image/')) {
+    //             setTaskCardPreview(URL.createObjectURL(file));
+    //         } else {
+    //             setTaskCardPreview(null);
+    //         }
+    //         setError('');
+    //     }
+    // };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        
+        // Check if user is logged in when they try to submit
+        if (!user || !user.token) {
+            alert('Please login or create an account to submit your scholar application');
+            navigate('/login');
+            return;
+        }
+
+        // TASK CARD FEATURE - Uncomment when ready to enable
+        // if (!taskCard) {
+        //     setError('Please upload your student ID card (task card) to verify your student status');
+        //     return;
+        // }
+
+        setLoading(true);
+        setError('');
+
+        try {
+            // Simple JSON submission (without task card)
+            await axios.post(
+                `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/auth/become-scholar`,
+                formData,
+                {
+                    headers: {
+                        Authorization: `Bearer ${user.token}`
+                    }
+                }
+            );
+
+            // TASK CARD FEATURE - Uncomment when ready to enable FormData submission
+            // const submitData = new FormData();
+            // submitData.append('university', formData.university);
+            // submitData.append('degree', formData.degree);
+            // submitData.append('year', formData.year);
+            // submitData.append('taskCard', taskCard);
+            // await axios.post(
+            //     `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/auth/become-scholar`,
+            //     submitData,
+            //     {
+            //         headers: {
+            //             Authorization: `Bearer ${user.token}`,
+            //             'Content-Type': 'multipart/form-data'
+            //         }
+            //     }
+            // );
+
+            alert('Application submitted successfully! We will review your application and notify you.');
+            navigate('/dashboard');
+        } catch (err) {
+            console.error('Error submitting application:', err);
+            setError(err.response?.data?.message || 'Failed to submit application. Please try again.');
+            setLoading(false);
+        }
+    };
+    return (
+        <div className="container py-5">
+            <h1 className="fw-bold mb-4 text-center" style={{ fontSize: '2.5rem' }}>Become a UniClips Scholar</h1>
+
+            <p className="text-secondary text-center fs-5 mb-5">
+                Share your expertise, help your peers, and earn significant revenue from your course sales.
+            </p>
+
+            <Container className="py-4">
+                <Row className="g-4 justify-content-center">
+
+                    {/* Card 1 - 70% Share */}
+                    <div className="col-md-4">
+                        <Card className="border-0 shadow-sm rounded-4 p-4 h-100 text-center" 
+                              style={{ 
+                                background: 'linear-gradient(135deg, #e9e5ff 0%, #f3f0ff 100%)',
+                                transition: 'transform 0.3s ease'
+                              }}
+                              onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
+                              onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}>
+                            <Card.Body>
+                                <h2 className="fw-bold mb-3" style={{ color: '#6366f1', fontSize: '2rem' }}>70% Share</h2>
+                                <Card.Text className="text-dark" style={{ fontSize: '1rem' }}>
+                                    Revenue share on your first 100 sales.
+                                </Card.Text>
+                            </Card.Body>
+                        </Card>
+                    </div>
+
+                    {/* Card 2 - Fast Payouts */}
+                    <div className="col-md-4">
+                        <Card className="border-0 shadow-sm rounded-4 p-4 h-100 text-center" 
+                              style={{ 
+                                background: 'linear-gradient(135deg, #e9e5ff 0%, #f3f0ff 100%)',
+                                transition: 'transform 0.3s ease'
+                              }}
+                              onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
+                              onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}>
+                            <Card.Body>
+                                <h2 className="fw-bold mb-3" style={{ color: '#6366f1', fontSize: '2rem' }}>Fast Payouts</h2>
+                                <Card.Text className="text-dark" style={{ fontSize: '1rem' }}>
+                                    Track and receive your earnings monthly.
+                                </Card.Text>
+                            </Card.Body>
+                        </Card>
+                    </div>
+
+                    {/* Card 3 - Expert Visibility */}
+                    <div className="col-md-4">
+                        <Card className="border-0 shadow-sm rounded-4 p-4 h-100 text-center" 
+                              style={{ 
+                                background: 'linear-gradient(135deg, #e9e5ff 0%, #f3f0ff 100%)',
+                                transition: 'transform 0.3s ease'
+                              }}
+                              onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
+                              onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}>
+                            <Card.Body>
+                                <h2 className="fw-bold mb-3" style={{ color: '#6366f1', fontSize: '2rem' }}>Expert Visibility</h2>
+                                <Card.Text className="text-dark" style={{ fontSize: '1rem' }}>
+                                    Build your profile as an academic expert.
+                                </Card.Text>
+                            </Card.Body>
+                        </Card>
+                    </div>
+
+                </Row>
+            </Container>
+
+            <Container className="py-5">
+                <Row className="g-4 justify-content-center">
+
+                    {/* Card 1 */}
+                    <div className="col-md-4">
+                        <Card className="border-0 shadow-sm rounded-4 p-4 h-100 gradient-card-1 hover-card">
+                            <Card.Body>
+                                <div className="d-flex align-items-center mb-3">
+                                    <div className="p-3 rounded-4 icon-soft-bg-1">
+                                        <i className="bi bi-mortarboard-fill fs-3 text-primary-emphasis"></i>
+                                    </div>
+                                </div>
+                                <Card.Title className="fw-bold text-primary-emphasis">Share Your Knowledge</Card.Title>
+                                <Card.Text className="text-dark opacity-75">
+                                    Help students by sharing your expertise and high-quality course materials.
+                                </Card.Text>
+                            </Card.Body>
+                        </Card>
+                    </div>
+
+                    {/* Card 2 */}
+                    <div className="col-md-4">
+                        <Card className="border-0 shadow-sm rounded-4 p-4 h-100 gradient-card-2 hover-card">
+                            <Card.Body>
+                                <div className="d-flex align-items-center mb-3">
+                                    <div className="p-3 rounded-4 icon-soft-bg-2">
+                                        <i className="bi bi-cash-stack fs-3 text-success-emphasis"></i>
+                                    </div>
+                                </div>
+                                <Card.Title className="fw-bold text-success-emphasis">Earn While Helping</Card.Title>
+                                <Card.Text className="text-dark opacity-75">
+                                    Generate consistent revenue from your course sales and uploaded materials.
+                                </Card.Text>
+                            </Card.Body>
+                        </Card>
+                    </div>
+
+                    {/* Card 3 */}
+                    <div className="col-md-4">
+                        <Card className="border-0 shadow-sm rounded-4 p-4 h-100 gradient-card-3 hover-card">
+                            <Card.Body>
+                                <div className="d-flex align-items-center mb-3">
+                                    <div className="p-3 rounded-4 icon-soft-bg-3">
+                                        <i className="bi bi-people-fill fs-3 text-warning-emphasis"></i>
+                                    </div>
+                                </div>
+                                <Card.Title className="fw-bold text-warning-emphasis">Grow Your Impact</Card.Title>
+                                <Card.Text className="text-dark opacity-75">
+                                    Build a following, gain recognition, and become a trusted UniClips scholar.
+                                </Card.Text>
+                            </Card.Body>
+                        </Card>
+                    </div>
+
+                </Row>
+            </Container>
+
+            {/* Application Form */}
+            <div className="row justify-content-center mt-5">
+                <div className="col-md-8">
+                    <Card className="border-0 shadow-sm">
+                        <Card.Body className="p-5">
+                            <h3 className="fw-bold mb-2 text-center">Scholar Application Form</h3>
+                            <p className="text-muted text-center mb-4">Fill in your details to start your journey as a UniClips Scholar</p>
+                            
+                            {error && (
+                                <div className="alert alert-danger" role="alert">
+                                    {error}
+                                </div>
+                            )}
+
+                            <form onSubmit={handleSubmit}>
+                                <div className="mb-4">
+                                    <label className="form-label fw-semibold">University <span className="text-danger">*</span></label>
+                                    <input 
+                                        type="text" 
+                                        name="university"
+                                        className="form-control py-2" 
+                                        placeholder="e.g., University of Dublin"
+                                        value={formData.university}
+                                        onChange={handleChange}
+                                        required 
+                                    />
+                                </div>
+
+                                <div className="mb-4">
+                                    <label className="form-label fw-semibold">Degree Program <span className="text-danger">*</span></label>
+                                    <select 
+                                        name="degree"
+                                        className="form-select py-2" 
+                                        value={formData.degree}
+                                        onChange={handleChange}
+                                        required
+                                        disabled={loadingPrograms}
+                                    >
+                                        <option value="">
+                                            {loadingPrograms ? 'Loading programs...' : 'Select your degree program'}
+                                        </option>
+                                        {degreePrograms.map((program, index) => (
+                                            <option key={index} value={program.program}>
+                                                {program.program}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="mb-4">
+                                    <label className="form-label fw-semibold">Expected Graduation Year <span className="text-danger">*</span></label>
+                                    <input 
+                                        type="number" 
+                                        name="year"
+                                        className="form-control py-2" 
+                                        placeholder="e.g., 2027"
+                                        min="2024"
+                                        max="2035"
+                                        value={formData.year}
+                                        onChange={handleChange}
+                                        required 
+                                    />
+                                </div>
+
+                                {/* TASK CARD FEATURE - Uncomment when ready to enable
+                                <div className="mb-4">
+                                    <label className="form-label fw-semibold">
+                                        Student ID Card (Task Card) <span className="text-danger">*</span>
+                                    </label>
+                                    <p className="text-muted small mb-2">
+                                        Upload a photo of your student ID to verify your student status
+                                    </p>
+                                    <div 
+                                        className="border border-2 border-dashed rounded-3 p-4 text-center"
+                                        style={{ 
+                                            borderColor: taskCard ? '#10b981' : '#dee2e6',
+                                            backgroundColor: taskCard ? '#f0fdf4' : '#f8f9fa',
+                                            cursor: 'pointer'
+                                        }}
+                                        onClick={() => document.getElementById('taskCardInput').click()}
+                                    >
+                                        <input 
+                                            type="file" 
+                                            id="taskCardInput"
+                                            accept="image/*,.pdf"
+                                            onChange={handleTaskCardChange}
+                                            style={{ display: 'none' }}
+                                        />
+                                        {taskCardPreview ? (
+                                            <div>
+                                                <img 
+                                                    src={taskCardPreview} 
+                                                    alt="Task Card Preview" 
+                                                    style={{ maxHeight: '150px', borderRadius: '8px' }}
+                                                />
+                                                <p className="text-success mt-2 mb-0">
+                                                    <i className="bi bi-check-circle me-1"></i>
+                                                    {taskCard.name}
+                                                </p>
+                                            </div>
+                                        ) : taskCard ? (
+                                            <div>
+                                                <i className="bi bi-file-earmark-pdf text-danger fs-1"></i>
+                                                <p className="text-success mt-2 mb-0">
+                                                    <i className="bi bi-check-circle me-1"></i>
+                                                    {taskCard.name}
+                                                </p>
+                                            </div>
+                                        ) : (
+                                            <div>
+                                                <i className="bi bi-cloud-arrow-up text-primary fs-1"></i>
+                                                <p className="mb-1 mt-2">
+                                                    <strong>Click to upload</strong> your student ID
+                                                </p>
+                                                <p className="text-muted small mb-0">
+                                                    JPG, PNG or PDF (max 5MB)
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                                */}
+
+                                <div className="mb-4">
+                                    <div className="alert alert-info">
+                                        <i className="bi bi-info-circle me-2"></i>
+                                        <strong>Note:</strong> After submitting this application, an admin will review it. Once approved, you'll be able to select subjects you want to teach and upload course videos.
+                                    </div>
+                                </div>
+
+                                <div className="d-grid">
+                                    <button 
+                                        type="submit" 
+                                        className="btn btn-primary btn-lg py-3 fw-semibold"
+                                        style={{ borderRadius: '10px' }}
+                                        disabled={loading}
+                                    >
+                                        {loading ? 'Submitting...' : 'Submit Application 🚀'}
+                                    </button>
+                                </div>
+
+                                <p className="text-center text-muted mt-3 mb-0">
+                                    <small>We'll review your application within 2-3 business days</small>
+                                </p>
+                            </form>
+                        </Card.Body>
+                    </Card>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+export default BecomeScholar;
