@@ -31,12 +31,14 @@ function FeaturedCourses() {
         // Get approved videos
         const approvedVideos = res.data.videos.filter(video => video.approved === 1);
         
-        // Group by subject_id to get unique courses
+        // Group by subject_id + scholar_user_id to get unique courses
         const coursesMap = {};
         approvedVideos.forEach(video => {
-          if (!coursesMap[video.subject_id]) {
-            coursesMap[video.subject_id] = {
+          const courseKey = `${video.subject_id}-${video.scholar_user_id}`;
+          if (!coursesMap[courseKey]) {
+            coursesMap[courseKey] = {
               subject_id: video.subject_id,
+              scholar_user_id: video.scholar_user_id,
               subject_name: video.subject_name,
               scholar_fname: video.scholar_fname,
               scholar_lname: video.scholar_lname,
@@ -47,10 +49,10 @@ function FeaturedCourses() {
               description: video.description
             };
           } else {
-            coursesMap[video.subject_id].videoCount++;
+            coursesMap[courseKey].videoCount++;
             // Keep the first video (lowest sequence_index)
-            if (video.sequence_index < coursesMap[video.subject_id].firstVideo.sequence_index) {
-              coursesMap[video.subject_id].firstVideo = video;
+            if (video.sequence_index < coursesMap[courseKey].firstVideo.sequence_index) {
+              coursesMap[courseKey].firstVideo = video;
             }
           }
         });
@@ -68,12 +70,12 @@ function FeaturedCourses() {
     fetchCourses();
   }, []);
 
-  const handleCourseClick = (subjectId) => {
+  const handleCourseClick = (subjectId, scholarId) => {
     if (!user) {
       setShowLoginModal(true);
       return;
     }
-    navigate(`/course/${subjectId}`);
+    navigate(`/course/${subjectId}/${scholarId}`);
   };
 
   return (
@@ -85,11 +87,11 @@ function FeaturedCourses() {
       
       <Row className="g-4 justify-content-center">
         {courses.map((course) => (
-          <Col lg={3} md={6} sm={12} key={course.subject_id}>
+          <Col lg={3} md={6} sm={12} key={`${course.subject_id}-${course.scholar_user_id}`}>
             <Card 
               className="h-100 border-0 course-card shadow-sm" 
               style={{ cursor: 'pointer' }}
-              onClick={() => handleCourseClick(course.subject_id)}
+              onClick={() => handleCourseClick(course.subject_id, course.scholar_user_id)}
             >
               <div 
                 className="position-relative overflow-hidden" 

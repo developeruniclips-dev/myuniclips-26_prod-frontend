@@ -395,7 +395,7 @@ function ScholarTabs() {
       case 'review':
         return (
           <div className="d-flex gap-2 align-items-center">
-            <Link to={`/course/${course.subject_id}`} className="text-primary text-decoration-none fw-semibold">
+            <Link to={`/course/${course.subject_id}/${user?.id || ''}`} className="text-primary text-decoration-none fw-semibold">
               View Videos ({course.videoCount})
             </Link>
             <Link 

@@ -120,7 +120,7 @@ function BundleCheckoutForm({ subjectId, scholarId, subjectName, bundlePrice, on
 }
 
 function CourseDetail() {
-  const { subjectId, scholarId } = useParams();
+  const { subjectId, scholarId: urlScholarId } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
   
@@ -135,6 +135,7 @@ function CourseDetail() {
   const [bundlePrice, setBundlePrice] = useState(DEFAULT_BUNDLE_PRICE);
   const [playingVideo, setPlayingVideo] = useState(null); // Video playing in-page
   const [savedProgress, setSavedProgress] = useState(0);
+  const [scholarId, setScholarId] = useState(urlScholarId); // Track actual scholarId
   const iframeRef = useRef(null);
   const playerRef = useRef(null);
   const progressIntervalRef = useRef(null);
@@ -156,9 +157,9 @@ function CourseDetail() {
         );
         
         // If scholarId is provided, filter by scholar too
-        if (scholarId) {
+        if (urlScholarId) {
           subjectVideos = subjectVideos.filter(
-            v => v.scholar_user_id === parseInt(scholarId)
+            v => v.scholar_user_id === parseInt(urlScholarId)
           );
         }
         
@@ -168,6 +169,15 @@ function CourseDetail() {
 
         if (subjectVideos.length > 0) {
           const firstVideo = subjectVideos[0];
+          
+          // If no scholarId in URL, redirect to the proper URL with scholarId
+          if (!urlScholarId) {
+            navigate(`/course/${subjectId}/${firstVideo.scholar_user_id}`, { replace: true });
+            return;
+          }
+          
+          // Set the scholarId state
+          setScholarId(firstVideo.scholar_user_id);
           
           // Get bundle price from the video data (comes from subjects table)
           const price = firstVideo.bundle_price ? parseFloat(firstVideo.bundle_price) : DEFAULT_BUNDLE_PRICE;
@@ -197,10 +207,10 @@ function CourseDetail() {
     };
 
     fetchCourseData();
-  }, [subjectId, scholarId]);
+  }, [subjectId, urlScholarId, navigate]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !scholarId) return;
     
     // Check if user has purchased this subject bundle
     const checkBundlePurchase = async () => {
