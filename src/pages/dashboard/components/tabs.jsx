@@ -304,10 +304,14 @@ function ScholarTabs() {
     ? parseFloat(earningsData.summary.totalPaid) 
     : 0;
   
-  // Get current month sales (mock based on date)
+  // Get current month sales from API (real data)
   const currentMonth = new Date().toLocaleString('default', { month: 'long' });
-  const currentMonthSales = Math.floor(totalSales * 0.08); // Mock ~8% of total
-  const currentMonthEarnings = totalEarnings * 0.08; // ~8% of total earnings
+  const currentMonthSales = earningsData?.summary?.monthlySales 
+    ? parseInt(earningsData.summary.monthlySales) 
+    : 0;
+  const currentMonthEarnings = earningsData?.summary?.monthlyEarnings 
+    ? parseFloat(earningsData.summary.monthlyEarnings) 
+    : 0;
 
   // Build combined courses list for display (grouped by subject)
   const getCoursesList = () => {
