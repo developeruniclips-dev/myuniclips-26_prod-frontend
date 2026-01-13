@@ -344,7 +344,7 @@ function ScholarTabs() {
       }
     });
     
-    // Add pending subject applications (that don't have videos yet)
+    // Add pending subject applications (that don't have videos yet) AND update sales from statusSubjects
     statusSubjects.forEach(subject => {
       const hasVideos = videos.some(v => v.subject_id === subject.subject_id);
       if (!hasVideos) {
@@ -353,12 +353,19 @@ function ScholarTabs() {
           title: subject.subject_name || subject.degree || 'Course Application',
           subject_id: subject.subject_id,
           status: subject.approved === 1 ? 'approved' : 'pending',
-          sales: 0,
-          price: 0,
+          sales: parseInt(subject.sales_count) || 0,
+          price: parseFloat(subject.bundle_price) || 0,
           videoCount: 0,
           allApproved: true,
           videos: []
         });
+      } else {
+        // Update existing course with sales data from statusSubjects
+        const existingCourse = coursesMap.get(subject.subject_id);
+        if (existingCourse) {
+          existingCourse.sales = parseInt(subject.sales_count) || 0;
+          existingCourse.price = parseFloat(subject.bundle_price) || existingCourse.price || 0;
+        }
       }
     });
     
