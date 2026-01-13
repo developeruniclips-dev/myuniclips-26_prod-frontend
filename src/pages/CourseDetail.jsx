@@ -875,7 +875,7 @@ function CourseDetail() {
                   </li>
                   <li className="mb-2">
                     <i className="bi bi-check-circle-fill text-success me-2"></i>
-                    Full lifetime access
+                    5 month access
                   </li>
                   <li className="mb-2">
                     <i className="bi bi-check-circle-fill text-success me-2"></i>
