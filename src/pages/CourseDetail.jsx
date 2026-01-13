@@ -4,6 +4,7 @@ import { useParams, Link, useNavigate, useSearchParams } from "react-router-dom"
 import { Container, Row, Col, Card, Button, Badge, ListGroup, Alert } from "react-bootstrap";
 import axios from "axios";
 import { useAuth } from "../context/temp";
+import { CourseDetailSEO } from "../components/SEO";
 
 // Default bundle price (used as fallback)
 const DEFAULT_BUNDLE_PRICE = 6.00;
@@ -493,6 +494,17 @@ function CourseDetail() {
 
   return (
     <div style={{ background: '#f8fafc', minHeight: '100vh' }}>
+      {/* Dynamic SEO for this course */}
+      <CourseDetailSEO 
+        course={{
+          id: subjectId,
+          title: course?.subject_name,
+          description: course?.description,
+          subject: course?.degree_programme,
+          price: bundlePrice
+        }} 
+      />
+      
       {/* Payment Status Message */}
       {paymentMessage && (
         <Alert 

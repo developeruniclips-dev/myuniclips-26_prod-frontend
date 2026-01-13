@@ -1,6 +1,7 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "UniClips",
+  "name": "UniClips - Learn from University Scholars",
+  "description": "Access premium educational video courses from verified university scholars. Learn directly from academic experts.",
   "icons": [
     {
       "src": "favicon.ico",
@@ -18,8 +19,11 @@
       "sizes": "512x512"
     }
   ],
-  "start_url": ".",
+  "start_url": "/",
   "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "theme_color": "#6366f1",
+  "background_color": "#ffffff",
+  "orientation": "portrait-primary",
+  "categories": ["education", "learning"],
+  "lang": "en"
 }

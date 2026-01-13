@@ -30,6 +30,7 @@ import PlaylistPage from "./pages/PlayListPage.jsx";
 import EditProfile from "./pages/dashboard/EditProfile.jsx";
 import CourseDetail from "./pages/CourseDetail.jsx";
 import MyLibrary from "./pages/MyLibrary.jsx";
+import { HomeSEO, ScholarsSEO, CoursesSEO, AboutSEO, LoginSEO, LibrarySEO } from "./components/SEO";
 
 function App() {
   const location = useLocation();
@@ -48,6 +49,7 @@ function App() {
             path="/"
             element={
               <>
+                <HomeSEO />
                 <Hero />
                 <Stats />
                 <HowItWorks />
@@ -59,10 +61,10 @@ function App() {
             }
           />
 
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/scholar" element={<ScholarPage />} />
-          <Route path="/teacher" element={<CoursePage />} />
-          <Route path="/aboutUs" element={<AboutUs />} />
+          <Route path="/login" element={<><LoginSEO /><LoginPage /></>} />
+          <Route path="/scholar" element={<><ScholarsSEO /><ScholarPage /></>} />
+          <Route path="/teacher" element={<><CoursesSEO /><CoursePage /></>} />
+          <Route path="/aboutUs" element={<><AboutSEO /><AboutUs /></>} />
 
           <Route
             path="/dashboard"
@@ -105,7 +107,7 @@ function App() {
           <Route path="/create-course" element={<NewCourse />} />
           <Route path="register" element={<RegisterPage />} />
           <Route path="/all-videos" element={<VideoPlaylist />} />
-          <Route path="/my-library" element={<MyLibrary />} />
+          <Route path="/my-library" element={<><LibrarySEO /><MyLibrary /></>} />
           <Route path="/course/:subjectId/:scholarId" element={<CourseDetail />} />
           <Route path="/course/:subjectId" element={<CourseDetail />} />
           <Route path="/watch/:id" element={<WatchVideo />} />
