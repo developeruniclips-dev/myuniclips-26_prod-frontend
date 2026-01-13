@@ -198,7 +198,8 @@ function ScholarTabs() {
       window.location.href = res.data.url;
     } catch (err) {
       console.error("Error creating Stripe account:", err);
-      alert("Failed to connect with Stripe. Please try again.");
+      const errorMessage = err.response?.data?.message || "Failed to connect with Stripe. Please try again.";
+      alert(errorMessage);
       setStripeLoading(false);
     }
   };
