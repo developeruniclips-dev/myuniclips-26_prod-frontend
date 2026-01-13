@@ -1040,6 +1040,51 @@ function ScholarTabs() {
                   </Card>
                 )}
 
+                {/* Payout History */}
+                <h5 className="fw-bold mb-3 mt-4">
+                  <i className="bi bi-clock-history me-2 text-primary"></i>
+                  Payout History
+                </h5>
+                
+                {earningsData?.payoutHistory && earningsData.payoutHistory.length > 0 ? (
+                  <Card className="border-0 shadow-sm mb-4">
+                    <Card.Body className="p-0">
+                      <Table responsive className="mb-0">
+                        <thead className="bg-light">
+                          <tr>
+                            <th>Date</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Transfer ID</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {earningsData.payoutHistory.map((payout, idx) => (
+                            <tr key={idx}>
+                              <td>{new Date(payout.date).toLocaleDateString()}</td>
+                              <td className="fw-bold text-success">€{payout.amount}</td>
+                              <td>
+                                <Badge bg={payout.status === 'completed' ? 'success' : payout.status === 'pending' ? 'warning' : 'secondary'}>
+                                  {payout.status}
+                                </Badge>
+                              </td>
+                              <td><small className="text-muted">{payout.stripeTransferId || '-'}</small></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </Table>
+                    </Card.Body>
+                  </Card>
+                ) : (
+                  <Card className="border-0 shadow-sm mb-4">
+                    <Card.Body className="text-center py-4">
+                      <i className="bi bi-clock-history fs-1 text-muted d-block mb-3"></i>
+                      <h6 className="text-muted">No payouts yet</h6>
+                      <p className="text-muted small mb-0">Your payout history will appear here once you receive payments</p>
+                    </Card.Body>
+                  </Card>
+                )}
+
                 {/* Next Payout Date */}
                 <Card className="border-0 shadow-sm" style={{background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)'}}>
                   <Card.Body className="text-center py-4">
