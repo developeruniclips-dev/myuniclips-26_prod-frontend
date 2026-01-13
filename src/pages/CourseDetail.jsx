@@ -1,13 +1,9 @@
 // src/pages/CourseDetail.jsx
-import React, { useState, useEffect, useRef } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useParams, Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Container, Row, Col, Card, Button, Badge, ListGroup, Alert } from "react-bootstrap";
 import axios from "axios";
 import { useAuth } from "../context/temp";
-import { loadStripe } from "@stripe/stripe-js";
-import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
-
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "pk_test_51Sc4nW345A1zTSM3aVfn0OZ0LiZWW6oJLLiKRJoQTuYLrMJ5L7AKqCFmXLHSNnXKv0NTl3JNXfKpDJpCXrxHN4Xc00GDHpPmRz");
 
 // Default bundle price (used as fallback)
 const DEFAULT_BUNDLE_PRICE = 6.00;
@@ -24,46 +20,34 @@ const getVimeoThumbnail = (videoId) => {
   return `https://vumbnail.com/${videoId}.jpg`;
 };
 
-// Checkout Modal Component for Subject Bundle
+// Checkout Component for Subject Bundle - Uses Stripe Checkout Session
 function BundleCheckoutForm({ subjectId, scholarId, subjectName, bundlePrice, onSuccess, onCancel }) {
-  const stripe = useStripe();
-  const elements = useElements();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!stripe || !elements) return;
-
+  const handleCheckout = async () => {
     setLoading(true);
+    setError("");
+    
     try {
-      // Create payment intent for subject bundle
+      // Create Stripe Checkout Session
       const { data } = await axios.post(
-        `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/purchases/subject/create-payment-intent`,
+        `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/purchases/create-checkout-session`,
         { subjectId, scholarId },
         { headers: { Authorization: `Bearer ${user.token}` } }
       );
 
-      const result = await stripe.confirmCardPayment(data.clientSecret, {
-        payment_method: { card: elements.getElement(CardElement) },
-      });
-
-      if (result.error) {
-        setError(result.error.message);
-      } else if (result.paymentIntent.status === "succeeded") {
-        // Confirm the purchase in our system
-        await axios.post(
-          `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/purchases/subject/confirm`,
-          { subjectId, scholarId, transactionId: result.paymentIntent.id },
-          { headers: { Authorization: `Bearer ${user.token}` } }
-        );
-        onSuccess();
+      // Redirect to Stripe Checkout
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setError("Failed to create checkout session");
       }
     } catch (err) {
-      setError(err.response?.data?.message || "Payment failed. Please try again.");
+      setError(err.response?.data?.message || "Failed to start checkout. Please try again.");
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -90,30 +74,34 @@ function BundleCheckoutForm({ subjectId, scholarId, subjectName, bundlePrice, on
             <i className="bi bi-check-circle-fill text-success me-1"></i>
             Lifetime access, no expiration
           </small>
+          <small className="text-muted d-block">
+            <i className="bi bi-check-circle-fill text-success me-1"></i>
+            Secure payment via Stripe
+          </small>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="p-3 border rounded mb-3 bg-white">
-            <CardElement options={{ hidePostalCode: true }} />
-          </div>
-          {error && <Alert variant="danger" className="py-2">{error}</Alert>}
-          <div className="d-grid gap-2">
-            <Button type="submit" variant="success" size="lg" disabled={!stripe || loading}>
-              {loading ? (
-                <>
-                  <span className="spinner-border spinner-border-sm me-2"></span>
-                  Processing...
-                </>
-              ) : (
-                <>
-                  <i className="bi bi-lock-fill me-2"></i>
-                  Pay €{bundlePrice.toFixed(2)}
-                </>
-              )}
-            </Button>
-            <Button variant="outline-secondary" onClick={onCancel}>Cancel</Button>
-          </div>
-        </form>
+        {error && <Alert variant="danger" className="py-2">{error}</Alert>}
+        <div className="d-grid gap-2">
+          <Button 
+            variant="success" 
+            size="lg" 
+            onClick={handleCheckout}
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-2"></span>
+                Redirecting to checkout...
+              </>
+            ) : (
+              <>
+                <i className="bi bi-credit-card me-2"></i>
+                Proceed to Checkout - €{bundlePrice.toFixed(2)}
+              </>
+            )}
+          </Button>
+          <Button variant="outline-secondary" onClick={onCancel}>Cancel</Button>
+        </div>
       </Card.Body>
     </Card>
   );
@@ -121,6 +109,7 @@ function BundleCheckoutForm({ subjectId, scholarId, subjectName, bundlePrice, on
 
 function CourseDetail() {
   const { subjectId, scholarId: urlScholarId } = useParams();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const navigate = useNavigate();
   
@@ -136,10 +125,41 @@ function CourseDetail() {
   const [playingVideo, setPlayingVideo] = useState(null); // Video playing in-page
   const [savedProgress, setSavedProgress] = useState(0);
   const [scholarId, setScholarId] = useState(urlScholarId); // Track actual scholarId
+  const [paymentMessage, setPaymentMessage] = useState(null);
   const iframeRef = useRef(null);
   const playerRef = useRef(null);
   const progressIntervalRef = useRef(null);
   const hasSeekRef = useRef(false); // Track if we've already seeked to saved position
+
+  // Handle Stripe Checkout return
+  useEffect(() => {
+    const payment = searchParams.get('payment');
+    const sessionId = searchParams.get('session_id');
+    
+    if (payment === 'success' && sessionId && user) {
+      // Confirm the purchase with our backend
+      const confirmPurchase = async () => {
+        try {
+          await axios.post(
+            `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/purchases/checkout-success`,
+            { sessionId },
+            { headers: { Authorization: `Bearer ${user.token}` } }
+          );
+          setHasPurchasedBundle(true);
+          setPaymentMessage({ type: 'success', text: '🎉 Payment successful! You now have access to all videos in this course.' });
+          // Clear URL params
+          navigate(`/course/${subjectId}/${urlScholarId}`, { replace: true });
+        } catch (err) {
+          console.error('Error confirming purchase:', err);
+          setPaymentMessage({ type: 'danger', text: 'Payment was received but there was an issue. Please contact support.' });
+        }
+      };
+      confirmPurchase();
+    } else if (payment === 'cancelled') {
+      setPaymentMessage({ type: 'warning', text: 'Payment was cancelled. You can try again when ready.' });
+      navigate(`/course/${subjectId}/${urlScholarId}`, { replace: true });
+    }
+  }, [searchParams, user, subjectId, urlScholarId, navigate]);
 
   useEffect(() => {
     const fetchCourseData = async () => {
@@ -473,6 +493,18 @@ function CourseDetail() {
 
   return (
     <div style={{ background: '#f8fafc', minHeight: '100vh' }}>
+      {/* Payment Status Message */}
+      {paymentMessage && (
+        <Alert 
+          variant={paymentMessage.type} 
+          className="mb-0 text-center rounded-0"
+          dismissible
+          onClose={() => setPaymentMessage(null)}
+        >
+          {paymentMessage.text}
+        </Alert>
+      )}
+      
       {/* Course Hero Section */}
       <div 
         style={{ 
@@ -868,16 +900,14 @@ function CourseDetail() {
           onClick={() => setShowCheckout(false)}
         >
           <div onClick={e => e.stopPropagation()} style={{ maxWidth: '450px', width: '90%' }}>
-            <Elements stripe={stripePromise}>
-              <BundleCheckoutForm 
-                subjectId={parseInt(subjectId)}
-                scholarId={parseInt(scholarId)}
-                subjectName={course?.subject_name}
-                bundlePrice={bundlePrice}
-                onSuccess={handlePurchaseSuccess}
-                onCancel={() => setShowCheckout(false)}
-              />
-            </Elements>
+            <BundleCheckoutForm 
+              subjectId={parseInt(subjectId)}
+              scholarId={parseInt(scholarId)}
+              subjectName={course?.subject_name}
+              bundlePrice={bundlePrice}
+              onSuccess={handlePurchaseSuccess}
+              onCancel={() => setShowCheckout(false)}
+            />
           </div>
         </div>
       )}
