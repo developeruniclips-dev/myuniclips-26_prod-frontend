@@ -472,7 +472,9 @@ function AdminDashboard() {
                           <th>University</th>
                           <th>Degree</th>
                           <th>Year</th>
+                          {/* TODO: Student ID verification - uncomment when ready
                           <th>Student ID</th>
+                          */}
                           <th>Applied</th>
                           <th>Status</th>
                           <th>Action</th>
@@ -502,6 +504,7 @@ function AdminDashboard() {
                             <td>{app.university}</td>
                             <td>{app.degree}</td>
                             <td>{app.year}</td>
+                            {/* TODO: Student ID verification - uncomment when ready
                             <td>
                               {app.task_card_url ? (
                                 <a 
@@ -520,6 +523,7 @@ function AdminDashboard() {
                                 </span>
                               )}
                             </td>
+                            */}
                             <td><small>{new Date(app.created_at).toLocaleDateString()}</small></td>
                             <td>
                               {app.approved === 1 ? (
