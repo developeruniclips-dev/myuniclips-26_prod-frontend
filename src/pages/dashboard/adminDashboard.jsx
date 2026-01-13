@@ -1041,13 +1041,15 @@ function AdminDashboard() {
                                   size="sm" 
                                   variant="success"
                                   onClick={() => {
-                                    const amount = prompt('Enter payout amount (EUR):');
-                                    if (amount && !isNaN(amount) && parseFloat(amount) > 0) {
-                                      handleReleaseFunds(scholar.id, parseFloat(amount));
+                                    const pendingAmount = parseFloat(scholar.pendingBalance) || 0;
+                                    if (pendingAmount <= 0) {
+                                      alert('No pending balance to release.');
+                                      return;
                                     }
+                                    handleReleaseFunds(scholar.id, pendingAmount);
                                   }}
                                 >
-                                  Release Funds
+                                  Release €{parseFloat(scholar.pendingBalance || 0).toFixed(2)}
                                 </Button>
                               ) : scholar.stripeStatus === 'Action Required' ? (
                                 <Button 
