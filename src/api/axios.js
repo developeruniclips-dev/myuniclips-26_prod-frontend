@@ -2,9 +2,13 @@
 import axios from "axios";
 import { getToken } from "./tokenService";
 
+// Base URL for API (without /api suffix for uploads)
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
+export const UPLOADS_BASE_URL = API_BASE.replace('/api', '');
+
 // Create instance
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:3001/api",
+  baseURL: API_BASE,
   headers: {
     "Content-Type": "application/json",
   },

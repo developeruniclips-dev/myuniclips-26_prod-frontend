@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
+import { UPLOADS_BASE_URL } from "../../../api/axios";
 import { useAuth } from "../../../context/temp";
 import { Button, Card, Tabs, Tab, Table, Badge, Alert, Collapse, Modal } from "react-bootstrap";
 
@@ -457,7 +458,7 @@ function ScholarTabs() {
               <Card.Body className="text-center py-3">
                 {userProfile?.profile_image_url ? (
                   <img 
-                    src={`http://localhost:3001/${userProfile.profile_image_url}`}
+                    src={`${UPLOADS_BASE_URL}/${userProfile.profile_image_url}`}
                     alt="Profile"
                     className="rounded-circle mb-2"
                     style={{ width: '60px', height: '60px', objectFit: 'cover', border: '3px solid #6366f1' }}

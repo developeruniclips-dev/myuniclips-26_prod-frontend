@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Container, Row, Col, Card, Table, Button, Badge, Tabs, Tab, Form } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { UPLOADS_BASE_URL } from "../../api/axios";
 import { useAuth } from "../../context/temp";
 import "./dashboard.css";
 
@@ -484,7 +485,7 @@ function AdminDashboard() {
                               <div className="d-flex align-items-center">
                                 {app.profile_image_url ? (
                                   <img 
-                                    src={`http://localhost:3001/${app.profile_image_url}`} 
+                                    src={`${UPLOADS_BASE_URL}/${app.profile_image_url}`} 
                                     alt={app.fname}
                                     className="rounded-circle me-2"
                                     style={{ width: '40px', height: '40px', objectFit: 'cover' }}
@@ -504,7 +505,7 @@ function AdminDashboard() {
                             <td>
                               {app.task_card_url ? (
                                 <a 
-                                  href={`http://localhost:3001/${app.task_card_url}`} 
+                                  href={`${UPLOADS_BASE_URL}/${app.task_card_url}`} 
                                   target="_blank" 
                                   rel="noopener noreferrer"
                                   className="btn btn-sm btn-outline-primary"
@@ -589,7 +590,7 @@ function AdminDashboard() {
                               <div className="d-flex align-items-center">
                                 {app.profile_image_url ? (
                                   <img 
-                                    src={`http://localhost:3001/${app.profile_image_url}`} 
+                                    src={`${UPLOADS_BASE_URL}/${app.profile_image_url}`} 
                                     alt={app.fname}
                                     className="rounded-circle me-2"
                                     style={{ width: '40px', height: '40px', objectFit: 'cover' }}

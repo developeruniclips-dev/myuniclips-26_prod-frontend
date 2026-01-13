@@ -12,6 +12,7 @@ import {
   ProgressBar
 } from "react-bootstrap";
 import axios from "axios";
+import { UPLOADS_BASE_URL } from "../../api/axios";
 import { useAuth } from "../../context/temp";
 import { useNavigate } from "react-router-dom";
 import "./dashboard.css";
@@ -146,7 +147,7 @@ function Dashboard() {
               <Card.Body className="text-center py-4">
                 {userProfile?.profile_image_url ? (
                   <img 
-                    src={`http://localhost:3001/${userProfile.profile_image_url}`}
+                    src={`${UPLOADS_BASE_URL}/${userProfile.profile_image_url}`}
                     alt="Profile"
                     className="rounded-circle mb-3"
                     style={{ width: '80px', height: '80px', objectFit: 'cover', border: '3px solid #6366f1' }}
