@@ -935,9 +935,18 @@ function ScholarTabs() {
                   getCoursesList().filter(c => c.videoCount > 0).map((course, idx) => {
                     const earnings = calculateEarnings(course.sales || 0, course.price || 0);
                     const totalAmount = (course.sales || 0) * (course.price || 0);
-                    // Mock monthly data - in production this would come from API
-                    const monthlySales = Math.floor((course.sales || 0) * 0.08);
-                    const monthlyEarnings = calculateEarnings(monthlySales, course.price || 0);
+                    
+                    // Get monthly data from earningsData API if available
+                    const courseEarningsData = earningsData?.salesByCourse?.find(
+                      c => c.id === course.subject_id
+                    );
+                    const monthlySales = courseEarningsData?.monthlySales || 0;
+                    const monthlyEarningsTotal = parseFloat(courseEarningsData?.monthlyEarnings || 0);
+                    const monthlyEarnings = {
+                      total: monthlyEarningsTotal.toFixed(2),
+                      below100: (monthlySales * (course.price || 0) * 0.7).toFixed(2),
+                      above100: "0.00"
+                    };
                     
                     return (
                       <Card key={idx} className="border-0 shadow-sm mb-4">
