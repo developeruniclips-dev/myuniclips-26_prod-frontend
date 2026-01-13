@@ -1033,7 +1033,7 @@ function AdminDashboard() {
                               )}
                             </td>
                             <td>
-                              <strong className="text-primary">€0.00</strong>
+                              <strong className="text-primary">€{scholar.pendingBalance || '0.00'}</strong>
                             </td>
                             <td>
                               {scholar.payoutsEnabled ? (
