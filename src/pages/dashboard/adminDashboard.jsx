@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Container, Row, Col, Card, Table, Button, Badge, Tabs, Tab, Form } from "react-bootstrap";
+import { Container, Row, Col, Card, Table, Button, Badge, Tabs, Tab, Form, Alert } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { UPLOADS_BASE_URL } from "../../api/axios";
@@ -21,6 +21,7 @@ function AdminDashboard() {
   const [bundlePrices, setBundlePrices] = useState({}); // Track bundle prices for each subject
   const [pricingSearch, setPricingSearch] = useState(""); // Search filter for course pricing
   const [expandedBundles, setExpandedBundles] = useState({}); // Track expanded bundles in video management
+  const [platformBalance, setPlatformBalance] = useState({ available: 0, pending: 0 }); // Platform Stripe balance
 
   useEffect(() => {
     // Reset all state when user changes to prevent stale data
@@ -129,6 +130,22 @@ function AdminDashboard() {
             setScholarsPayouts(scholarsPayoutsRes.data.scholars || []);
           } catch (err) {
             console.error("Error fetching scholars payouts:", err);
+          }
+
+          // Fetch platform Stripe balance
+          console.log("Fetching platform balance...");
+          try {
+            const balanceRes = await axios.get(
+              `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/stripe-connect/platform-balance`,
+              { headers: { Authorization: `Bearer ${user.token}` } }
+            );
+            console.log("Platform balance fetched:", balanceRes.data);
+            setPlatformBalance({
+              available: balanceRes.data.available?.eur || 0,
+              pending: balanceRes.data.pending?.eur || 0
+            });
+          } catch (err) {
+            console.error("Error fetching platform balance:", err);
           }
 
           // Fetch all subjects for pricing management
@@ -992,6 +1009,25 @@ function AdminDashboard() {
 
               {/* Payouts Tab */}
               <Tab eventKey="payouts" title="Payouts Management">
+                {/* Platform Balance Info */}
+                <Alert variant="info" className="mb-4">
+                  <div className="d-flex justify-content-between align-items-center">
+                    <div>
+                      <strong>Platform Balance:</strong>{' '}
+                      <span className="text-success">€{platformBalance.available.toFixed(2)} available</span>
+                      {platformBalance.pending > 0 && (
+                        <span className="text-muted ms-2">
+                          (€{platformBalance.pending.toFixed(2)} pending - available in 2-7 days)
+                        </span>
+                      )}
+                    </div>
+                    <small className="text-muted">
+                      <i className="bi bi-info-circle me-1"></i>
+                      You can only release funds that are available in your Stripe account
+                    </small>
+                  </div>
+                </Alert>
+                
                 <div className="table-responsive">
                   {loading ? (
                     <div className="text-center py-5">
@@ -1011,7 +1047,11 @@ function AdminDashboard() {
                         </tr>
                       </thead>
                       <tbody>
-                        {scholarsPayouts.map((scholar) => (
+                        {scholarsPayouts.map((scholar) => {
+                          const pendingAmount = parseFloat(scholar.pendingBalance) || 0;
+                          const canPayout = pendingAmount > 0 && platformBalance.available >= pendingAmount;
+                          
+                          return (
                           <tr key={scholar.id}>
                             <td>
                               <div>
@@ -1037,28 +1077,32 @@ function AdminDashboard() {
                             </td>
                             <td>
                               {scholar.payoutsEnabled ? (
-                                <Button 
-                                  size="sm" 
-                                  variant="success"
-                                  onClick={() => {
-                                    const pendingAmount = parseFloat(scholar.pendingBalance) || 0;
-                                    if (pendingAmount <= 0) {
-                                      alert('No pending balance to release.');
-                                      return;
-                                    }
-                                    handleReleaseFunds(scholar.id, pendingAmount);
-                                  }}
-                                >
-                                  Release €{parseFloat(scholar.pendingBalance || 0).toFixed(2)}
-                                </Button>
-                              ) : scholar.stripeStatus === 'Action Required' ? (
-                                <Button 
-                                  size="sm" 
-                                  variant="outline-secondary"
-                                  disabled
-                                >
-                                  Complete KYC
-                                </Button>
+                                canPayout ? (
+                                  <Button 
+                                    size="sm" 
+                                    variant="success"
+                                    onClick={() => handleReleaseFunds(scholar.id, pendingAmount)}
+                                  >
+                                    Release €{pendingAmount.toFixed(2)}
+                                  </Button>
+                                ) : pendingAmount > 0 ? (
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline-warning"
+                                    disabled
+                                    title="Funds not yet available in platform account"
+                                  >
+                                    Funds Pending
+                                  </Button>
+                                ) : (
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline-secondary"
+                                    disabled
+                                  >
+                                    No Balance
+                                  </Button>
+                                )
                               ) : (
                                 <Button 
                                   size="sm" 
@@ -1070,7 +1114,8 @@ function AdminDashboard() {
                               )}
                             </td>
                           </tr>
-                        ))}
+                        );
+                        })}
                       </tbody>
                     </Table>
                   )}
