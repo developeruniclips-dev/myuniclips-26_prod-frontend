@@ -1,15 +1,8 @@
-import { Helmet } from 'react-helmet-async';
+import { useEffect } from 'react';
 
 /**
- * SEO Component for dynamic meta tags
- * @param {Object} props
- * @param {string} props.title - Page title
- * @param {string} props.description - Meta description
- * @param {string} props.keywords - Meta keywords
- * @param {string} props.image - Open Graph image URL
- * @param {string} props.url - Canonical URL
- * @param {string} props.type - Open Graph type (website, article, product)
- * @param {Object} props.structuredData - JSON-LD structured data
+ * SEO Component for dynamic meta tags using native React
+ * Works with React 19 without external dependencies
  */
 const SEO = ({
   title = 'UniClips',
@@ -17,93 +10,62 @@ const SEO = ({
   keywords = 'online courses, university education, academic videos, scholar courses, learn online, educational platform, video learning, UniClips',
   image = 'https://myuniclips.com/og-image.png',
   url = 'https://myuniclips.com',
-  type = 'website',
-  structuredData = null
+  type = 'website'
 }) => {
   const fullTitle = title === 'UniClips' ? title : `${title} | UniClips`;
 
-  // Default structured data for the website
-  const defaultStructuredData = {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    "name": "UniClips",
-    "url": "https://myuniclips.com",
-    "description": "Learn from top university scholars. Access premium educational content and video courses.",
-    "potentialAction": {
-      "@type": "SearchAction",
-      "target": "https://myuniclips.com/teacher?search={search_term_string}",
-      "query-input": "required name=search_term_string"
-    }
-  };
+  useEffect(() => {
+    // Update title
+    document.title = fullTitle;
 
-  // Organization structured data
-  const organizationData = {
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    "name": "UniClips",
-    "url": "https://myuniclips.com",
-    "logo": "https://myuniclips.com/logo.png",
-    "sameAs": [
-      "https://twitter.com/myuniclips",
-      "https://www.instagram.com/myuniclips",
-      "https://www.linkedin.com/company/myuniclips"
-    ],
-    "contactPoint": {
-      "@type": "ContactPoint",
-      "contactType": "customer service",
-      "email": "support@myuniclips.com"
-    }
-  };
+    // Helper to update or create meta tag
+    const updateMeta = (name, content, isProperty = false) => {
+      const attr = isProperty ? 'property' : 'name';
+      let element = document.querySelector(`meta[${attr}="${name}"]`);
+      if (!element) {
+        element = document.createElement('meta');
+        element.setAttribute(attr, name);
+        document.head.appendChild(element);
+      }
+      element.setAttribute('content', content);
+    };
 
-  return (
-    <Helmet>
-      {/* Primary Meta Tags */}
-      <title>{fullTitle}</title>
-      <meta name="title" content={fullTitle} />
-      <meta name="description" content={description} />
-      <meta name="keywords" content={keywords} />
-      <meta name="author" content="UniClips" />
-      <meta name="robots" content="index, follow" />
-      <meta name="language" content="English" />
-      
-      {/* Canonical URL */}
-      <link rel="canonical" href={url} />
+    // Helper to update or create link tag
+    const updateLink = (rel, href) => {
+      let element = document.querySelector(`link[rel="${rel}"]`);
+      if (!element) {
+        element = document.createElement('link');
+        element.setAttribute('rel', rel);
+        document.head.appendChild(element);
+      }
+      element.setAttribute('href', href);
+    };
 
-      {/* Open Graph / Facebook */}
-      <meta property="og:type" content={type} />
-      <meta property="og:url" content={url} />
-      <meta property="og:title" content={fullTitle} />
-      <meta property="og:description" content={description} />
-      <meta property="og:image" content={image} />
-      <meta property="og:image:width" content="1200" />
-      <meta property="og:image:height" content="630" />
-      <meta property="og:site_name" content="UniClips" />
-      <meta property="og:locale" content="en_US" />
+    // Primary Meta Tags
+    updateMeta('title', fullTitle);
+    updateMeta('description', description);
+    updateMeta('keywords', keywords);
 
-      {/* Twitter */}
-      <meta name="twitter:card" content="summary_large_image" />
-      <meta name="twitter:url" content={url} />
-      <meta name="twitter:title" content={fullTitle} />
-      <meta name="twitter:description" content={description} />
-      <meta name="twitter:image" content={image} />
-      <meta name="twitter:site" content="@myuniclips" />
-      <meta name="twitter:creator" content="@myuniclips" />
+    // Canonical URL
+    updateLink('canonical', url);
 
-      {/* Additional SEO Tags */}
-      <meta name="theme-color" content="#6366f1" />
-      <meta name="apple-mobile-web-app-capable" content="yes" />
-      <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-      <meta name="apple-mobile-web-app-title" content="UniClips" />
+    // Open Graph / Facebook
+    updateMeta('og:type', type, true);
+    updateMeta('og:url', url, true);
+    updateMeta('og:title', fullTitle, true);
+    updateMeta('og:description', description, true);
+    updateMeta('og:image', image, true);
 
-      {/* Structured Data */}
-      <script type="application/ld+json">
-        {JSON.stringify(structuredData || defaultStructuredData)}
-      </script>
-      <script type="application/ld+json">
-        {JSON.stringify(organizationData)}
-      </script>
-    </Helmet>
-  );
+    // Twitter
+    updateMeta('twitter:card', 'summary_large_image');
+    updateMeta('twitter:url', url);
+    updateMeta('twitter:title', fullTitle);
+    updateMeta('twitter:description', description);
+    updateMeta('twitter:image', image);
+
+  }, [fullTitle, description, keywords, image, url, type]);
+
+  return null; // This component doesn't render anything
 };
 
 export default SEO;
@@ -164,59 +126,23 @@ export const LibrarySEO = () => (
 );
 
 // Dynamic SEO for course detail pages
-export const CourseDetailSEO = ({ course }) => {
-  const structuredData = {
-    "@context": "https://schema.org",
-    "@type": "Course",
-    "name": course?.title || "Course",
-    "description": course?.description || "Educational course on UniClips",
-    "provider": {
-      "@type": "Organization",
-      "name": "UniClips",
-      "sameAs": "https://myuniclips.com"
-    },
-    "offers": {
-      "@type": "Offer",
-      "price": course?.price || "0",
-      "priceCurrency": "EUR",
-      "availability": "https://schema.org/InStock"
-    }
-  };
-
-  return (
-    <SEO
-      title={course?.title || "Course Details"}
-      description={course?.description?.substring(0, 160) || "View course details and start learning on UniClips."}
-      keywords={`${course?.title || 'course'}, ${course?.subject || 'education'}, online course, video learning`}
-      url={`https://myuniclips.com/course/${course?.id || ''}`}
-      type="product"
-      structuredData={structuredData}
-    />
-  );
-};
+export const CourseDetailSEO = ({ course }) => (
+  <SEO
+    title={course?.title || "Course Details"}
+    description={course?.description?.substring(0, 160) || "View course details and start learning on UniClips."}
+    keywords={`${course?.title || 'course'}, ${course?.subject || 'education'}, online course, video learning`}
+    url={`https://myuniclips.com/course/${course?.id || ''}`}
+    type="product"
+  />
+);
 
 // Dynamic SEO for scholar profile pages
-export const ScholarProfileSEO = ({ scholar }) => {
-  const structuredData = {
-    "@context": "https://schema.org",
-    "@type": "Person",
-    "name": scholar?.name || "Scholar",
-    "jobTitle": "University Scholar",
-    "description": scholar?.bio || "Expert educator on UniClips",
-    "worksFor": {
-      "@type": "Organization",
-      "name": scholar?.university || "University"
-    }
-  };
-
-  return (
-    <SEO
-      title={scholar?.name || "Scholar Profile"}
-      description={scholar?.bio?.substring(0, 160) || "View scholar profile and courses on UniClips."}
-      keywords={`${scholar?.name || 'scholar'}, university professor, online courses, academic expert`}
-      url={`https://myuniclips.com/scholar/${scholar?.id || ''}`}
-      type="profile"
-      structuredData={structuredData}
-    />
-  );
-};
+export const ScholarProfileSEO = ({ scholar }) => (
+  <SEO
+    title={scholar?.name || "Scholar Profile"}
+    description={scholar?.bio?.substring(0, 160) || "View scholar profile and courses on UniClips."}
+    keywords={`${scholar?.name || 'scholar'}, university professor, online courses, academic expert`}
+    url={`https://myuniclips.com/scholar/${scholar?.id || ''}`}
+    type="profile"
+  />
+);
