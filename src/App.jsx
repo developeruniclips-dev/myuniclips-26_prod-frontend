@@ -20,6 +20,8 @@ import AdminDashboard from "./pages/dashboard/adminDashboard";
 import BecomeScholar from "./pages/dashboard/becomeScholar";
 import NewCourse from "./pages/dashboard/newCourse";
 import LoginPage from "./pages/login/LoginPage";
+import ForgotPassword from "./pages/login/ForgotPassword";
+import ResetPassword from "./pages/login/ResetPassword";
 import ProtectedRoute from "./components/ProtectedRoutes.jsx";
 import { AuthProvider } from "./context/temp";
 import RegisterPage from "./pages/RegUser.jsx";
@@ -62,6 +64,8 @@ function App() {
           />
 
           <Route path="/login" element={<><LoginSEO /><LoginPage /></>} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/scholar" element={<><ScholarsSEO /><ScholarPage /></>} />
           <Route path="/teacher" element={<><CoursesSEO /><CoursePage /></>} />
           <Route path="/aboutUs" element={<><AboutSEO /><AboutUs /></>} />

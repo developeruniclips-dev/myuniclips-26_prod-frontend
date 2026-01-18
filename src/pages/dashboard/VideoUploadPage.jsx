@@ -4,6 +4,7 @@ import { useAuth } from "../../context/temp";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import { Card, Form, Button, Spinner, Alert, Container, Badge } from "react-bootstrap";
+import ScholarTermsModal from "../../components/terms/ScholarTermsModal";
 
 const MAX_VIDEOS_PER_SUBJECT = 7;
 
@@ -21,6 +22,8 @@ function VideoUploadPage() {
   const [subjects, setSubjects] = useState([]);
   const [videoCounts, setVideoCounts] = useState({});
   const [error, setError] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
 
   // Fetch scholar's subjects
   useEffect(() => {
@@ -77,9 +80,19 @@ function VideoUploadPage() {
     }
   };
 
+  const handleTermsAccept = () => {
+    setTermsAccepted(true);
+    setShowTermsModal(false);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    if (!termsAccepted) {
+      setShowTermsModal(true);
+      return;
+    }
+
     if (!file) {
       setError("Please select a video file!");
       return;
@@ -253,12 +266,33 @@ function VideoUploadPage() {
               <strong>Note:</strong> Video pricing will be set by admin after review and approval.
             </Alert>
 
+            <Form.Group className="mb-4">
+              <Form.Check
+                type="checkbox"
+                id="scholar-terms-checkbox"
+                checked={termsAccepted}
+                onChange={() => setShowTermsModal(true)}
+                label={
+                  <span>
+                    I agree to the{" "}
+                    <span 
+                      className="text-primary" 
+                      style={{ cursor: 'pointer', textDecoration: 'underline' }}
+                      onClick={(e) => { e.preventDefault(); setShowTermsModal(true); }}
+                    >
+                      Scholar Terms and Agreement
+                    </span>
+                  </span>
+                }
+              />
+            </Form.Group>
+
             <div className="d-grid">
               <Button 
                 type="submit" 
                 variant="primary" 
                 size="lg"
-                disabled={uploading}
+                disabled={uploading || !termsAccepted}
                 className="py-3 fw-semibold"
                 style={{ borderRadius: '10px' }}
               >
@@ -282,6 +316,13 @@ function VideoUploadPage() {
           </Form>
         </Card.Body>
       </Card>
+
+      {/* Scholar Terms Modal */}
+      <ScholarTermsModal
+        show={showTermsModal}
+        onHide={() => setShowTermsModal(false)}
+        onAccept={handleTermsAccept}
+      />
     </Container>
   );
 }

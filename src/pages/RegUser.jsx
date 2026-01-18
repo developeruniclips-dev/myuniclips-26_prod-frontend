@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Container, Row, Col, Card, Form, Button, Modal } from "react-bootstrap";
 import axios from "axios";
 import teacher from "../assets/teacher.png";
+import LearnerTermsModal from "../components/terms/LearnerTermsModal";
 
 function RegisterPage() {
   const navigate = useNavigate();
@@ -12,18 +13,32 @@ function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
 
   const [modalMessage, setModalMessage] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [modalSuccess, setModalSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleClose = () => {
     setShowModal(false);
     if (modalSuccess) navigate("/login");
   };
 
+  const handleTermsAccept = () => {
+    setTermsAccepted(true);
+    setShowTermsModal(false);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!termsAccepted) {
+      setShowTermsModal(true);
+      return;
+    }
+
     if (password !== confirmPassword) {
       setModalMessage("Passwords do not match");
       setModalSuccess(false);
@@ -35,9 +50,11 @@ function RegisterPage() {
       fname,
       lname,
       email,
-      password
+      password,
+      termsAccepted: true
     };
 
+    setLoading(true);
     try {
       await axios.post(
         `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/auth`,
@@ -50,6 +67,8 @@ function RegisterPage() {
       setModalMessage(err.response?.data?.message || "Something went wrong");
       setModalSuccess(false);
       setShowModal(true);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -119,14 +138,45 @@ function RegisterPage() {
                   />
                 </Form.Group>
 
-                <Button type="submit">Register</Button>
+                <Form.Group className="mb-3">
+                  <Form.Check
+                    type="checkbox"
+                    id="terms-checkbox"
+                    checked={termsAccepted}
+                    onChange={() => setShowTermsModal(true)}
+                    label={
+                      <span>
+                        I agree to the{" "}
+                        <span 
+                          className="text-primary" 
+                          style={{ cursor: 'pointer', textDecoration: 'underline' }}
+                          onClick={(e) => { e.preventDefault(); setShowTermsModal(true); }}
+                        >
+                          Terms and Conditions
+                        </span>
+                      </span>
+                    }
+                  />
+                </Form.Group>
+
+                <Button type="submit" disabled={loading}>
+                  {loading ? "Registering..." : "Register"}
+                </Button>
               </Form>
             </Card.Body>
           </Card>
         </Col>
       </Row>
 
-      {/* Modal */}
+      {/* Terms Modal */}
+      <LearnerTermsModal
+        show={showTermsModal}
+        onHide={() => setShowTermsModal(false)}
+        onAccept={handleTermsAccept}
+        context="signup"
+      />
+
+      {/* Result Modal */}
       <Modal show={showModal} onHide={handleClose}>
         <Modal.Header closeButton>
           <Modal.Title>{modalSuccess ? "Success" : "Error"}</Modal.Title>

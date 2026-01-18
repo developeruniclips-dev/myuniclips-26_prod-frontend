@@ -129,6 +129,16 @@ function LoginPage() {
                         />
                       </Form.Group>
 
+                      <div className="d-flex justify-content-end mb-3">
+                        <Link 
+                          to="/forgot-password" 
+                          className="text-decoration-none small"
+                          style={{ color: 'var(--primary-color)' }}
+                        >
+                          Forgot Password?
+                        </Link>
+                      </div>
+
                       <Button 
                         type="submit" 
                         disabled={loading}

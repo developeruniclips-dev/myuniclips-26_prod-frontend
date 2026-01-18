@@ -5,6 +5,7 @@ import { Container, Row, Col, Card, Button, Badge, ListGroup, Alert } from "reac
 import axios from "axios";
 import { useAuth } from "../context/temp";
 import { CourseDetailSEO } from "../components/SEO";
+import LearnerTermsModal from "../components/terms/LearnerTermsModal";
 
 // Default bundle price (used as fallback)
 const DEFAULT_BUNDLE_PRICE = 6.00;
@@ -26,8 +27,15 @@ function BundleCheckoutForm({ subjectId, scholarId, subjectName, bundlePrice, on
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
 
   const handleCheckout = async () => {
+    if (!termsAccepted) {
+      setShowTermsModal(true);
+      return;
+    }
+
     setLoading(true);
     setError("");
     
@@ -51,7 +59,15 @@ function BundleCheckoutForm({ subjectId, scholarId, subjectName, bundlePrice, on
     }
   };
 
+  const handleTermsAccept = () => {
+    setTermsAccepted(true);
+    setShowTermsModal(false);
+    // Auto-proceed after accepting terms
+    handleCheckout();
+  };
+
   return (
+    <>
     <Card className="border-0 shadow-lg">
       <Card.Body className="p-4">
         <div className="text-center mb-4">
@@ -72,8 +88,8 @@ function BundleCheckoutForm({ subjectId, scholarId, subjectName, bundlePrice, on
             Access to all videos in this course
           </small>
           <small className="text-muted d-block">
-            <i className="bi bi-check-circle-fill text-success me-1"></i>
-            Lifetime access, no expiration
+            <i className="bi bi-clock-fill text-warning me-1"></i>
+            5 months access from purchase date
           </small>
           <small className="text-muted d-block">
             <i className="bi bi-check-circle-fill text-success me-1"></i>
@@ -102,9 +118,28 @@ function BundleCheckoutForm({ subjectId, scholarId, subjectName, bundlePrice, on
             )}
           </Button>
           <Button variant="outline-secondary" onClick={onCancel}>Cancel</Button>
+          <small className="text-muted text-center mt-2">
+            By proceeding, you agree to our{" "}
+            <span 
+              className="text-primary" 
+              style={{ cursor: 'pointer', textDecoration: 'underline' }}
+              onClick={() => setShowTermsModal(true)}
+            >
+              Terms and Conditions
+            </span>
+          </small>
         </div>
       </Card.Body>
     </Card>
+    
+    {/* Terms Modal for Purchase */}
+    <LearnerTermsModal
+      show={showTermsModal}
+      onHide={() => setShowTermsModal(false)}
+      onAccept={handleTermsAccept}
+      context="purchase"
+    />
+    </>
   );
 }
 
