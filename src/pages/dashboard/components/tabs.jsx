@@ -18,7 +18,6 @@ function ScholarTabs() {
   const [scholarProfile, setScholarProfile] = useState(null);
   const [stripeStatus, setStripeStatus] = useState(null);
   const [stripeLoading, setStripeLoading] = useState(false);
-  const [verificationEmailSending, setVerificationEmailSending] = useState(false);
   const [earningsData, setEarningsData] = useState(null);
   const [earningsLoading, setEarningsLoading] = useState(false);
   const [expandedCourse, setExpandedCourse] = useState(null);
@@ -172,51 +171,18 @@ function ScholarTabs() {
     }
   }, [user, scholarProfile]);
 
-  // Check for Stripe return/refresh URLs and auto-send verification email if needed
+  // Check for Stripe return/refresh URLs
   useEffect(() => {
     const stripeParam = searchParams.get('stripe');
-    
-    const checkAndSendVerificationEmail = async () => {
-      if (stripeParam === 'success' && user?.token) {
-        try {
-          // Check if there are pending requirements
-          const statusRes = await axios.get(
-            `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/stripe-connect/account-status`,
-            { headers: { Authorization: `Bearer ${user.token}` } }
-          );
-          
-          // If connected but onboarding not complete, send verification email automatically
-          if (statusRes.data.connected && !statusRes.data.onboardingComplete) {
-            console.log('Stripe onboarding incomplete, sending verification email...');
-            
-            await axios.post(
-              `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/stripe-connect/send-verification-email`,
-              {},
-              { headers: { Authorization: `Bearer ${user.token}` } }
-            );
-            
-            alert('Almost done! We\'ve sent you an email with a link to complete your Stripe verification. Please check your inbox.');
-          } else if (statusRes.data.onboardingComplete) {
-            alert('Stripe setup complete! You can now receive payouts.');
-          }
-        } catch (err) {
-          console.error('Error checking/sending verification:', err);
-        }
-        
-        // Clean up URL and refresh
-        setTimeout(() => {
-          window.location.href = '/scholar-dashboard';
-        }, 1000);
-      } else if (stripeParam === 'refresh') {
-        // User needs to continue onboarding
-        alert('Please complete your Stripe onboarding to receive payouts');
-      }
-    };
-    
-    if (stripeParam) {
-      checkAndSendVerificationEmail();
+    if (stripeParam === 'success') {
+      alert('Stripe setup complete! You can now receive payouts.');
+      setTimeout(() => {
+        window.location.href = '/scholar-dashboard';
+      }, 1000);
+    } else if (stripeParam === 'refresh') {
+      alert('Please complete your Stripe onboarding to receive payouts');
     }
-  }, [searchParams, user]);
+  }, [searchParams]);
 
   // Handle Stripe Connect onboarding
   const handleStripeConnect = async () => {
@@ -234,30 +200,6 @@ function ScholarTabs() {
       const errorMessage = err.response?.data?.message || "Failed to connect with Stripe. Please try again.";
       alert(errorMessage);
       setStripeLoading(false);
-    }
-  };
-
-  // Send verification email with Stripe link
-  const handleSendVerificationEmail = async () => {
-    setVerificationEmailSending(true);
-    try {
-      const res = await axios.post(
-        `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/stripe-connect/send-verification-email`,
-        {},
-        { headers: { Authorization: `Bearer ${user.token}` } }
-      );
-      
-      if (res.data.fullyVerified) {
-        alert('Your Stripe account is fully verified! No additional action needed.');
-      } else {
-        alert(`Verification email sent to ${user.email}. Please check your inbox.`);
-      }
-    } catch (err) {
-      console.error("Error sending verification email:", err);
-      const errorMessage = err.response?.data?.message || "Failed to send verification email. Please try again.";
-      alert(errorMessage);
-    } finally {
-      setVerificationEmailSending(false);
     }
   };
 
@@ -581,50 +523,25 @@ function ScholarTabs() {
                 
                 {/* Stripe Connect Button */}
                 {scholarProfile?.approved && !stripeStatus?.onboardingComplete && (
-                  <>
-                    <Button 
-                      variant="primary" 
-                      size="sm" 
-                      className="w-100 mt-2"
-                      onClick={handleStripeConnect}
-                      disabled={stripeLoading}
-                    >
-                      {stripeLoading ? (
-                        <>
-                          <span className="spinner-border spinner-border-sm me-2"></span>
-                          Connecting...
-                        </>
-                      ) : (
-                        <>
-                          <i className="bi bi-stripe me-2"></i>
-                          {stripeStatus?.connected ? 'Complete Stripe Setup' : 'Connect with Stripe'}
-                        </>
-                      )}
-                    </Button>
-                    
-                    {/* Send verification email button - show when connected but needs verification */}
-                    {stripeStatus?.connected && (
-                      <Button 
-                        variant="outline-secondary" 
-                        size="sm" 
-                        className="w-100 mt-2"
-                        onClick={handleSendVerificationEmail}
-                        disabled={verificationEmailSending}
-                      >
-                        {verificationEmailSending ? (
-                          <>
-                            <span className="spinner-border spinner-border-sm me-2"></span>
-                            Sending...
-                          </>
-                        ) : (
-                          <>
-                            <i className="bi bi-envelope me-2"></i>
-                            Email Me Verification Link
-                          </>
-                        )}
-                      </Button>
+                  <Button 
+                    variant="primary" 
+                    size="sm" 
+                    className="w-100 mt-2"
+                    onClick={handleStripeConnect}
+                    disabled={stripeLoading}
+                  >
+                    {stripeLoading ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2"></span>
+                        Connecting...
+                      </>
+                    ) : (
+                      <>
+                        <i className="bi bi-stripe me-2"></i>
+                        {stripeStatus?.connected ? 'Complete Stripe Setup' : 'Connect with Stripe'}
+                      </>
                     )}
-                  </>
+                  </Button>
                 )}
               </Card.Body>
             </Card>
