@@ -371,8 +371,8 @@ function AdminDashboard() {
         {/* Admin Header */}
         <div className="row mb-4">
           <div className="col-lg-8">
-            <h2 className="fw-bold mb-1">Admin Dashboard 👨‍💼</h2>
-            <p className="text-muted">Manage users, scholars, and content</p>
+            <h2 className="fw-bold mb-1">{isSuperAdmin ? 'Super Admin Dashboard 🛡️' : 'Admin Dashboard 👨‍💼'}</h2>
+            <p className="text-muted">{isSuperAdmin ? 'Full system control and management' : 'Manage users, scholars, and content'}</p>
           </div>
           
           {/* Admin Profile Card */}

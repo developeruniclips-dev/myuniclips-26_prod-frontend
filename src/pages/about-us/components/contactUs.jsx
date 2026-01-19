@@ -56,10 +56,19 @@ function ContactUs() {
                 <Col className="text-center">
                     <p className="mt-4">
                     <MapPin className="me-2 text-primary" size={18} />
-                    <strong>Address:</strong> Kaartokatu 2, 11100 Riihimäki, Finland
+                    <strong>Address:</strong>{" "}
+                    <a 
+                        href="https://www.google.com/maps/search/?api=1&query=Kaartokatu+2,+11100+Riihim%C3%A4ki,+Finland"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-decoration-none"
+                    >
+                        Kaartokatu 2, 11100 Riihimäki, Finland
+                    </a>
                     </p>
                     <p>
-                    <strong>Phone:</strong> +358 45 1723342
+                    <strong>Phone:</strong>{" "}
+                    <a href="tel:+358451723342" className="text-decoration-none">+358 45 1723342</a>
                     </p>
                 </Col>
                 </Row>

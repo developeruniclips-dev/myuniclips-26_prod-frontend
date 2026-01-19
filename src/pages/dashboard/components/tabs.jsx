@@ -862,9 +862,9 @@ function ScholarTabs() {
               <Card.Body className="text-center py-3">
                 <p className="text-muted mb-2">© Uniclips Oy 2026</p>
                 <div className="d-flex justify-content-center gap-3 flex-wrap">
-                  <a href="#" className="text-decoration-none text-muted small">Terms & Privacy</a>
+                  <Link to="/privacy-policy" className="text-decoration-none text-muted small">Terms & Privacy</Link>
                   <span className="text-muted">|</span>
-                  <a href="#" className="text-decoration-none text-muted small">Contact Us</a>
+                  <Link to="/aboutUs#contact" className="text-decoration-none text-muted small">Contact Us</Link>
                 </div>
               </Card.Body>
             </Card>

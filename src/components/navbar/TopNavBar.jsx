@@ -6,6 +6,7 @@ import { useAuth } from "../../context/temp";
 
 function TopNavBar({ showLinks = true }) {
   const [scrolled, setScrolled] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -17,10 +18,22 @@ function TopNavBar({ showLinks = true }) {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Auto-close mobile nav when route changes
+  useEffect(() => {
+    setExpanded(false);
+  }, [location.pathname]);
+
+  // Close nav when clicking a link
+  const handleNavClick = () => {
+    setExpanded(false);
+  };
+
   return (
     <Navbar
       expand="lg"
       fixed="top"
+      expanded={expanded}
+      onToggle={(isExpanded) => setExpanded(isExpanded)}
       className={`px-4 py-3 transition-navbar ${
         scrolled ? "scrolled navbar-dark" : "navbar-light"
       }`}
@@ -46,6 +59,7 @@ function TopNavBar({ showLinks = true }) {
                 to="/" 
                 className="px-3 fw-semibold text-white"
                 style={{ transition: 'all 0.3s' }}
+                onClick={handleNavClick}
               >
                 Home
               </Nav.Link>
@@ -53,6 +67,7 @@ function TopNavBar({ showLinks = true }) {
                 as={Link} 
                 to="/all-videos"
                 className="px-3 fw-semibold text-white"
+                onClick={handleNavClick}
               >
                 Courses
               </Nav.Link>
@@ -61,6 +76,7 @@ function TopNavBar({ showLinks = true }) {
                 as={Link} 
                 to="/become-scholar"
                 className="px-3 fw-semibold text-white"
+                onClick={handleNavClick}
               >
                 Scholar
               </Nav.Link>
@@ -69,6 +85,7 @@ function TopNavBar({ showLinks = true }) {
                 as={Link} 
                 to="/aboutUs"
                 className="px-3 fw-semibold text-white"
+                onClick={handleNavClick}
               >
                 About Us
               </Nav.Link>
@@ -79,6 +96,7 @@ function TopNavBar({ showLinks = true }) {
                   as={Link} 
                   to={user?.roles?.includes("Scholar") ? "/scholar-dashboard" : user?.roles?.includes("Admin") ? "/admin-dashboard" : "/dashboard"}
                   className="px-3 fw-semibold text-white"
+                  onClick={handleNavClick}
                 >
                   📚 Dashboard
                 </Nav.Link>
@@ -92,6 +110,7 @@ function TopNavBar({ showLinks = true }) {
                   variant="light"
                   className="ms-3 px-4 fw-semibold"
                   style={{ borderRadius: '25px' }}
+                  onClick={handleNavClick}
                 >
                   Login
                 </Button>

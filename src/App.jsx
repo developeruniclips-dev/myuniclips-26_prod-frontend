@@ -32,6 +32,7 @@ import PlaylistPage from "./pages/PlayListPage.jsx";
 import EditProfile from "./pages/dashboard/EditProfile.jsx";
 import CourseDetail from "./pages/CourseDetail.jsx";
 import MyLibrary from "./pages/MyLibrary.jsx";
+import PrivacyPolicy from "./pages/PrivacyPolicy.jsx";
 import { HomeSEO, ScholarsSEO, CoursesSEO, AboutSEO, LoginSEO, LibrarySEO } from "./components/SEO";
 
 function App() {
@@ -64,11 +65,12 @@ function App() {
           />
 
           <Route path="/login" element={<><LoginSEO /><LoginPage /></>} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/scholar" element={<><ScholarsSEO /><ScholarPage /></>} />
-          <Route path="/teacher" element={<><CoursesSEO /><CoursePage /></>} />
-          <Route path="/aboutUs" element={<><AboutSEO /><AboutUs /></>} />
+          <Route path="/forgot-password" element={<><ForgotPassword /><Footer /></>} />
+          <Route path="/reset-password" element={<><ResetPassword /><Footer /></>} />
+          <Route path="/scholar" element={<><ScholarsSEO /><ScholarPage /><Footer /></>} />
+          <Route path="/teacher" element={<><CoursesSEO /><CoursePage /><Footer /></>} />
+          <Route path="/aboutUs" element={<><AboutSEO /><AboutUs /><Footer /></>} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
 
           <Route
             path="/dashboard"
@@ -107,13 +109,13 @@ function App() {
           />
 
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
-          <Route path="/become-scholar" element={<BecomeScholar />} />
+          <Route path="/become-scholar" element={<><BecomeScholar /><Footer /></>} />
           <Route path="/create-course" element={<NewCourse />} />
-          <Route path="register" element={<RegisterPage />} />
-          <Route path="/all-videos" element={<VideoPlaylist />} />
-          <Route path="/my-library" element={<><LibrarySEO /><MyLibrary /></>} />
-          <Route path="/course/:subjectId/:scholarId" element={<CourseDetail />} />
-          <Route path="/course/:subjectId" element={<CourseDetail />} />
+          <Route path="register" element={<><RegisterPage /><Footer /></>} />
+          <Route path="/all-videos" element={<><VideoPlaylist /><Footer /></>} />
+          <Route path="/my-library" element={<><LibrarySEO /><MyLibrary /><Footer /></>} />
+          <Route path="/course/:subjectId/:scholarId" element={<><CourseDetail /><Footer /></>} />
+          <Route path="/course/:subjectId" element={<><CourseDetail /><Footer /></>} />
           <Route path="/watch/:id" element={<WatchVideo />} />
         </Routes>
       </div>

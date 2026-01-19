@@ -31,11 +31,31 @@ function RegisterPage() {
     setShowTermsModal(false);
   };
 
+  // Password validation function
+  const validatePassword = (pwd) => {
+    const errors = [];
+    if (pwd.length < 8) errors.push("at least 8 characters");
+    if (!/[A-Z]/.test(pwd)) errors.push("one uppercase letter");
+    if (!/[a-z]/.test(pwd)) errors.push("one lowercase letter");
+    if (!/[0-9]/.test(pwd)) errors.push("one number");
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(pwd)) errors.push("one special character (!@#$%^&*...)");
+    return errors;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!termsAccepted) {
       setShowTermsModal(true);
+      return;
+    }
+
+    // Validate password strength
+    const passwordErrors = validatePassword(password);
+    if (passwordErrors.length > 0) {
+      setModalMessage(`Password must contain: ${passwordErrors.join(", ")}`);
+      setModalSuccess(false);
+      setShowModal(true);
       return;
     }
 
@@ -126,6 +146,9 @@ function RegisterPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                   />
+                  <Form.Text className="text-muted">
+                    Min 8 characters with uppercase, lowercase, number, and special character
+                  </Form.Text>
                 </Form.Group>
 
                 <Form.Group className="mb-3">

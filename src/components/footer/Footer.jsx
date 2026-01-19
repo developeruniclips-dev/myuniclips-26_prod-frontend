@@ -53,11 +53,9 @@ function Footer() {
               <li className="mb-2">
                 <Link to="/aboutUs#contact" className="text-white-50 text-decoration-none">Contact Us</Link>
               </li>
-              {/* Privacy Policy - uncomment when ready
               <li className="mb-2">
-                <a href="#" className="text-white-50 text-decoration-none">Privacy Policy</a>
+                <Link to="/privacy-policy" className="text-white-50 text-decoration-none">Privacy Policy</Link>
               </li>
-              */}
             </ul>
           </Col>
           
@@ -67,15 +65,22 @@ function Footer() {
             <ul className="list-unstyled text-white-50">
               <li className="mb-2">
                 <i className="bi bi-envelope me-2"></i>
-                support@uniclips.com
+                <a href="mailto:support@uniclips.com" className="text-white-50 text-decoration-none">support@uniclips.com</a>
               </li>
               <li className="mb-2">
                 <i className="bi bi-telephone me-2"></i>
-                +358 45 1723342
+                <a href="tel:+358451723342" className="text-white-50 text-decoration-none">+358 45 1723342</a>
               </li>
               <li className="mb-2">
                 <i className="bi bi-geo-alt me-2"></i>
-                Kaartokatu 2, 11100 Riihimäki
+                <a 
+                  href="https://www.google.com/maps/search/?api=1&query=Kaartokatu+2,+11100+Riihim%C3%A4ki,+Finland" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-white-50 text-decoration-none"
+                >
+                  Kaartokatu 2, 11100 Riihimäki
+                </a>
               </li>
             </ul>
           </Col>
