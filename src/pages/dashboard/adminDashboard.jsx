@@ -23,6 +23,10 @@ function AdminDashboard() {
   const [expandedBundles, setExpandedBundles] = useState({}); // Track expanded bundles in video management
   const [platformBalance, setPlatformBalance] = useState({ available: 0, pending: 0 }); // Platform Stripe balance
 
+  // Check if user is SuperAdmin (has SuperAdmin role)
+  const isSuperAdmin = user?.roles?.includes('SuperAdmin');
+  const isAdmin = user?.roles?.includes('Admin') || isSuperAdmin;
+
   useEffect(() => {
     // Reset all state when user changes to prevent stale data
     setUsers([]);
@@ -320,8 +324,9 @@ function AdminDashboard() {
     }
 
     try {
+      // Use SuperAdmin-only endpoint for user deletion
       await axios.delete(
-        `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/users/${userId}`,
+        `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/users/super-admin/${userId}`,
         { headers: { Authorization: `Bearer ${user.token}` } }
       );
       
@@ -329,7 +334,7 @@ function AdminDashboard() {
       window.location.reload();
     } catch (err) {
       console.error("Error deleting user:", err);
-      alert("Failed to delete user");
+      alert(err.response?.data?.message || "Failed to delete user");
     }
   };
 
@@ -374,11 +379,11 @@ function AdminDashboard() {
           <div className="col-lg-4">
             <Card className="border-0 shadow-sm">
               <Card.Body className="text-center py-4">
-                <div className="rounded-circle bg-danger bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style={{ width: '80px', height: '80px' }}>
-                  <i className="bi bi-shield-check fs-1 text-danger"></i>
+                <div className={`rounded-circle ${isSuperAdmin ? 'bg-danger' : 'bg-primary'} bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3`} style={{ width: '80px', height: '80px' }}>
+                  <i className={`bi ${isSuperAdmin ? 'bi-shield-fill-check' : 'bi-shield-check'} fs-1 ${isSuperAdmin ? 'text-danger' : 'text-primary'}`}></i>
                 </div>
-                <h6 className="fw-bold mb-1">Administrator</h6>
-                <p className="text-muted small mb-3">Full System Access</p>
+                <h6 className="fw-bold mb-1">{isSuperAdmin ? 'Super Administrator' : 'Administrator'}</h6>
+                <p className="text-muted small mb-3">{isSuperAdmin ? 'Full System Control' : 'Operations Management'}</p>
                 <Button 
                   variant="outline-danger" 
                   size="sm" 
@@ -852,53 +857,65 @@ function AdminDashboard() {
                   ) : users.length === 0 ? (
                     <p className="text-center text-muted py-5">No users found</p>
                   ) : (
-                    <Table hover>
-                      <thead className="bg-light">
-                        <tr>
-                          <th>User ID</th>
-                          <th>Name</th>
-                          <th>Email</th>
-                          <th>Scholar</th>
-                          <th>Joined</th>
-                          <th>Action</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {users.map((u) => (
-                          <tr key={u.id}>
-                            <td>#{u.id}</td>
-                            <td>{u.fname} {u.lname}</td>
-                            <td>{u.email}</td>
-                            <td>
-                              {u.is_scholar === 1 || u.isScholar === 1 ? (
-                                <Badge bg="primary">Yes</Badge>
-                              ) : (
-                                <Badge bg="secondary">No</Badge>
-                              )}
-                            </td>
-                            <td>
-                              {u.created_at 
-                                ? new Date(u.created_at).toLocaleDateString('en-US', {
-                                    year: 'numeric',
-                                    month: 'short',
-                                    day: 'numeric'
-                                  })
-                                : 'N/A'
-                              }
-                            </td>
-                            <td>
-                              <Button 
-                                variant="outline-danger" 
-                                size="sm"
-                                onClick={() => handleDeleteUser(u.id, `${u.fname} ${u.lname}`)}
-                              >
-                                <i className="bi bi-trash"></i> Delete
-                              </Button>
-                            </td>
+                    <>
+                      {!isSuperAdmin && (
+                        <Alert variant="info" className="mb-3">
+                          <i className="bi bi-info-circle me-2"></i>
+                          <strong>View Only:</strong> User deletion requires SuperAdmin privileges. Contact SuperAdmin for user management actions.
+                        </Alert>
+                      )}
+                      <Table hover>
+                        <thead className="bg-light">
+                          <tr>
+                            <th>User ID</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Scholar</th>
+                            <th>Joined</th>
+                            {isSuperAdmin && <th>Action</th>}
                           </tr>
-                        ))}
-                      </tbody>
-                    </Table>
+                        </thead>
+                        <tbody>
+                          {users.map((u) => (
+                            <tr key={u.id}>
+                              <td>#{u.id}</td>
+                              <td>{u.fname} {u.lname}</td>
+                              <td>{u.email}</td>
+                              <td>
+                                {u.is_scholar === 1 || u.isScholar === 1 ? (
+                                  <Badge bg="primary">Yes</Badge>
+                                ) : (
+                                  <Badge bg="secondary">No</Badge>
+                                )}
+                              </td>
+                              <td>
+                                {u.created_at 
+                                  ? new Date(u.created_at).toLocaleDateString('en-US', {
+                                      year: 'numeric',
+                                      month: 'short',
+                                      day: 'numeric'
+                                    })
+                                  : 'N/A'
+                                }
+                              </td>
+                              {isSuperAdmin && (
+                                <td>
+                                  <Button 
+                                    variant="outline-danger" 
+                                    size="sm"
+                                    onClick={() => handleDeleteUser(u.id, `${u.fname} ${u.lname}`)}
+                                    disabled={u.email === user?.email}
+                                    title={u.email === user?.email ? "Cannot delete yourself" : "Delete user"}
+                                  >
+                                    <i className="bi bi-trash"></i> Delete
+                                  </Button>
+                                </td>
+                              )}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </Table>
+                    </>
                   )}
                 </div>
               </Tab>
@@ -1007,7 +1024,8 @@ function AdminDashboard() {
                 </div>
               </Tab>
 
-              {/* Payouts Tab */}
+              {/* Payouts Tab - SuperAdmin Only */}
+              {isSuperAdmin && (
               <Tab eventKey="payouts" title="Payouts Management">
                 {/* Platform Balance Info */}
                 <Alert variant="info" className="mb-4">
@@ -1121,8 +1139,10 @@ function AdminDashboard() {
                   )}
                 </div>
               </Tab>
+              )}
 
-              {/* Course Pricing Management Tab */}
+              {/* Course Pricing Management Tab - SuperAdmin Only */}
+              {isSuperAdmin && (
               <Tab eventKey="pricing" title="Course Pricing">
                 <div className="p-3">
                   <h5 className="mb-3">
@@ -1236,6 +1256,7 @@ function AdminDashboard() {
                   )}
                 </div>
               </Tab>
+              )}
             </Tabs>
           </Card.Body>
         </Card>
