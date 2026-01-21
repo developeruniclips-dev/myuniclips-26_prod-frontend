@@ -21,10 +21,10 @@ function ContactUs() {
                         <p className="mb-0">
                         <Mail className="me-2 text-secondary" size={18} />
                         <a
-                            href="mailto:satarworks@gmail.com"
+                            href="mailto:info@myuniclips.com"
                             className="contact-link"
                         >
-                            satarworks@gmail.com
+                            info@myuniclips.com
                         </a>
                         </p>
                     </Card.Body>
@@ -41,10 +41,10 @@ function ContactUs() {
                         <p className="mb-0">
                         <Mail className="me-2 text-secondary" size={18} />
                         <a
-                            href="mailto:anushikadilmini@gmail.com"
+                            href="mailto:info@myuniclips.com"
                             className="contact-link"
                         >
-                            anushikadilmini@gmail.com
+                            info@myuniclips.com
                         </a>
                         </p>
                     </Card.Body>
