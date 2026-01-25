@@ -1,6 +1,6 @@
 // src/pages/login/LoginPage.jsx
 import React, { useState } from "react";
-import { Button, Form, Card, Container, Row, Col, Alert } from "react-bootstrap";
+import { Button, Form, Card, Container, Row, Col, Alert, InputGroup } from "react-bootstrap";
 import { useAuth } from "../../context/temp";
 import { useNavigate, Link } from "react-router-dom";
 
@@ -10,6 +10,7 @@ function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(null);
 
   const handleSubmit = async (e) => {
@@ -100,13 +101,13 @@ function LoginPage() {
                       </Alert>
                     )}
 
-                    <Form onSubmit={handleSubmit} autoComplete="on">
+                    <Form onSubmit={handleSubmit} autoComplete="off">
                       <Form.Group className="mb-3">
                         <Form.Label className="fw-semibold">Email / Username</Form.Label>
                         <Form.Control
                           type="text"
                           name="email"
-                          autoComplete="email"
+                          autoComplete="off"
                           placeholder="Enter your email or username"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
@@ -117,16 +118,31 @@ function LoginPage() {
 
                       <Form.Group className="mb-4">
                         <Form.Label className="fw-semibold">Password</Form.Label>
-                        <Form.Control
-                          type="password"
-                          name="password"
-                          autoComplete="current-password"
-                          placeholder="Enter your password"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          required
-                          className="py-3"
-                        />
+                        <InputGroup>
+                          <Form.Control
+                            type={showPassword ? "text" : "password"}
+                            name="password"
+                            autoComplete="off"
+                            placeholder="Enter your password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                            className="py-3"
+                            style={{ borderRight: 'none' }}
+                          />
+                          <Button
+                            variant="outline-secondary"
+                            onClick={() => setShowPassword(!showPassword)}
+                            style={{ 
+                              borderLeft: 'none', 
+                              backgroundColor: 'white',
+                              borderColor: '#dee2e6'
+                            }}
+                            type="button"
+                          >
+                            <i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`}></i>
+                          </Button>
+                        </InputGroup>
                       </Form.Group>
 
                       <div className="d-flex justify-content-end mb-3">
