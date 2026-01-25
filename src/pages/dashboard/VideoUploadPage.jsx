@@ -21,6 +21,7 @@ function VideoUploadPage() {
   const [subjectId, setSubjectId] = useState("");
   const [subjects, setSubjects] = useState([]);
   const [videoCounts, setVideoCounts] = useState({});
+  const [maxSequences, setMaxSequences] = useState({});
   const [error, setError] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
@@ -50,10 +51,21 @@ function VideoUploadPage() {
           { headers: { Authorization: `Bearer ${user.token}` } }
         );
         const counts = {};
+        const maxSequences = {};
         (videosRes.data.videos || []).forEach(video => {
           counts[video.subject_id] = (counts[video.subject_id] || 0) + 1;
+          // Track the highest sequence number for each subject
+          const seq = parseInt(video.sequence_index) || 0;
+          maxSequences[video.subject_id] = Math.max(maxSequences[video.subject_id] || 0, seq);
         });
         setVideoCounts(counts);
+        setMaxSequences(maxSequences);
+        
+        // Set initial sequence for the first subject
+        const initialSubjectId = urlSubjectId || (approvedSubjects.length > 0 ? approvedSubjects[0].subject_id : null);
+        if (initialSubjectId) {
+          setSequenceIndex(String((maxSequences[initialSubjectId] || 0) + 1));
+        }
       } catch (err) {
         console.error("Error fetching subjects:", err);
       }
@@ -61,6 +73,14 @@ function VideoUploadPage() {
 
     if (user) fetchSubjects();
   }, [user, searchParams]);
+
+  // Auto-update sequence number when subject changes
+  useEffect(() => {
+    if (subjectId) {
+      const nextSequence = (maxSequences[subjectId] || 0) + 1;
+      setSequenceIndex(String(nextSequence));
+    }
+  }, [subjectId, maxSequences]);
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
@@ -251,13 +271,12 @@ function VideoUploadPage() {
                 type="number"
                 min="1"
                 value={sequenceIndex}
-                onChange={(e) => setSequenceIndex(e.target.value)}
-                placeholder="1"
-                required
-                className="py-2"
+                readOnly
+                className="py-2 bg-light"
+                style={{ cursor: 'not-allowed' }}
               />
               <Form.Text className="text-muted">
-                Video order in the course. First video (sequence 1) is always free.
+                Auto-calculated based on existing videos. First video (sequence 1) is always free.
               </Form.Text>
             </Form.Group>
 
