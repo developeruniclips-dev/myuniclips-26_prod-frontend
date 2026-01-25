@@ -1,6 +1,6 @@
 // src/pages/login/LoginPage.jsx
 import React, { useState } from "react";
-import { Button, Form, Card, Container, Row, Col, Alert, InputGroup } from "react-bootstrap";
+import { Button, Form, Card, Container, Row, Col, Alert } from "react-bootstrap";
 import { useAuth } from "../../context/temp";
 import { useNavigate, Link } from "react-router-dom";
 
@@ -106,8 +106,8 @@ function LoginPage() {
                         <Form.Label className="fw-semibold">Email / Username</Form.Label>
                         <Form.Control
                           type="text"
-                          name="email"
-                          autoComplete="off"
+                          name="login_email_field"
+                          autoComplete="new-password"
                           placeholder="Enter your email or username"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
@@ -118,31 +118,31 @@ function LoginPage() {
 
                       <Form.Group className="mb-4">
                         <Form.Label className="fw-semibold">Password</Form.Label>
-                        <InputGroup>
+                        <div className="position-relative">
                           <Form.Control
                             type={showPassword ? "text" : "password"}
-                            name="password"
-                            autoComplete="off"
+                            name="login_password_field"
+                            autoComplete="new-password"
                             placeholder="Enter your password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
-                            className="py-3"
-                            style={{ borderRight: 'none' }}
+                            className="py-3 pe-5"
                           />
-                          <Button
-                            variant="outline-secondary"
+                          <span
                             onClick={() => setShowPassword(!showPassword)}
                             style={{ 
-                              borderLeft: 'none', 
-                              backgroundColor: 'white',
-                              borderColor: '#dee2e6'
+                              position: 'absolute',
+                              right: '15px',
+                              top: '50%',
+                              transform: 'translateY(-50%)',
+                              cursor: 'pointer',
+                              color: '#6c757d'
                             }}
-                            type="button"
                           >
-                            <i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`}></i>
-                          </Button>
-                        </InputGroup>
+                            <i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'} fs-5`}></i>
+                          </span>
+                        </div>
                       </Form.Group>
 
                       <div className="d-flex justify-content-end mb-3">
