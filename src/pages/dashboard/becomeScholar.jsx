@@ -8,9 +8,12 @@ import './dashboard.css'
 function BecomeScholar() {
     const { user } = useAuth();
     const navigate = useNavigate();
+    
+    // Static values for Country and University (can be changed to dynamic later)
+    const STATIC_COUNTRY = 'Finland';
+    const STATIC_UNIVERSITY = 'Häme University of Applied Sciences (HAMK)';
+    
     const [formData, setFormData] = useState({
-        country: '',
-        university: '',
         degree: '',
         year: ''
     });
@@ -20,81 +23,79 @@ function BecomeScholar() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     
-    // Cascading dropdown data
-    const [countries, setCountries] = useState([]);
-    const [universities, setUniversities] = useState([]);
-    const [degreePrograms, setDegreePrograms] = useState([]);
-    
-    // Loading states
-    const [loadingCountries, setLoadingCountries] = useState(true);
-    const [loadingUniversities, setLoadingUniversities] = useState(false);
-    const [loadingPrograms, setLoadingPrograms] = useState(false);
+    // CASCADING DROPDOWN FEATURE - Uncomment when ready to enable dynamic dropdowns
+    // const [countries, setCountries] = useState([]);
+    // const [universities, setUniversities] = useState([]);
+    // const [degreePrograms, setDegreePrograms] = useState([]);
+    // const [loadingCountries, setLoadingCountries] = useState(true);
+    // const [loadingUniversities, setLoadingUniversities] = useState(false);
+    // const [loadingPrograms, setLoadingPrograms] = useState(false);
 
-    // Fetch countries on mount
-    useEffect(() => {
-        const fetchCountries = async () => {
-            try {
-                const response = await axios.get(
-                    `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/locations/countries`
-                );
-                setCountries(response.data);
-            } catch (err) {
-                console.error('Error fetching countries:', err);
-            } finally {
-                setLoadingCountries(false);
-            }
-        };
-        fetchCountries();
-    }, []);
+    // CASCADING DROPDOWN FEATURE - Fetch countries on mount
+    // useEffect(() => {
+    //     const fetchCountries = async () => {
+    //         try {
+    //             const response = await axios.get(
+    //                 `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/locations/countries`
+    //             );
+    //             setCountries(response.data);
+    //         } catch (err) {
+    //             console.error('Error fetching countries:', err);
+    //         } finally {
+    //             setLoadingCountries(false);
+    //         }
+    //     };
+    //     fetchCountries();
+    // }, []);
 
-    // Fetch universities when country changes
-    useEffect(() => {
-        if (formData.country) {
-            setLoadingUniversities(true);
-            setUniversities([]);
-            setFormData(prev => ({ ...prev, university: '', degree: '' }));
-            
-            const fetchUniversities = async () => {
-                try {
-                    const response = await axios.get(
-                        `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/locations/universities/by-country/${formData.country}`
-                    );
-                    setUniversities(response.data);
-                } catch (err) {
-                    console.error('Error fetching universities:', err);
-                } finally {
-                    setLoadingUniversities(false);
-                }
-            };
-            fetchUniversities();
-        } else {
-            setUniversities([]);
-        }
-    }, [formData.country]);
+    // CASCADING DROPDOWN FEATURE - Fetch universities when country changes
+    // useEffect(() => {
+    //     if (formData.country) {
+    //         setLoadingUniversities(true);
+    //         setUniversities([]);
+    //         setFormData(prev => ({ ...prev, university: '', degree: '' }));
+    //         
+    //         const fetchUniversities = async () => {
+    //             try {
+    //                 const response = await axios.get(
+    //                     `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/locations/universities/by-country/${formData.country}`
+    //                 );
+    //                 setUniversities(response.data);
+    //             } catch (err) {
+    //                 console.error('Error fetching universities:', err);
+    //             } finally {
+    //                 setLoadingUniversities(false);
+    //             }
+    //         };
+    //         fetchUniversities();
+    //     } else {
+    //         setUniversities([]);
+    //     }
+    // }, [formData.country]);
 
-    // Fetch degree programs when university changes
-    useEffect(() => {
-        if (formData.university) {
-            setLoadingPrograms(true);
-            setFormData(prev => ({ ...prev, degree: '' }));
-            
-            const fetchPrograms = async () => {
-                try {
-                    const response = await axios.get(
-                        `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/locations/programs/by-university/${formData.university}`
-                    );
-                    setDegreePrograms(response.data);
-                } catch (err) {
-                    console.error('Error fetching degree programs:', err);
-                } finally {
-                    setLoadingPrograms(false);
-                }
-            };
-            fetchPrograms();
-        } else {
-            setDegreePrograms([]);
-        }
-    }, [formData.university]);
+    // CASCADING DROPDOWN FEATURE - Fetch degree programs when university changes
+    // useEffect(() => {
+    //     if (formData.university) {
+    //         setLoadingPrograms(true);
+    //         setFormData(prev => ({ ...prev, degree: '' }));
+    //         
+    //         const fetchPrograms = async () => {
+    //             try {
+    //                 const response = await axios.get(
+    //                     `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/locations/programs/by-university/${formData.university}`
+    //                 );
+    //                 setDegreePrograms(response.data);
+    //             } catch (err) {
+    //                 console.error('Error fetching degree programs:', err);
+    //             } finally {
+    //                 setLoadingPrograms(false);
+    //             }
+    //         };
+    //         fetchPrograms();
+    //     } else {
+    //         setDegreePrograms([]);
+    //     }
+    // }, [formData.university]);
 
     // Don't redirect if not logged in - allow them to see the page
     // They'll be prompted to login when they try to submit
@@ -152,13 +153,13 @@ function BecomeScholar() {
         setError('');
 
         try {
-            // Find the selected university name from the universities array
-            const selectedUniversity = universities.find(u => u.id.toString() === formData.university);
-            const universityName = selectedUniversity ? selectedUniversity.name : formData.university;
+            // Submit with static university name for now
+            // CASCADING DROPDOWN FEATURE - Uncomment when enabling dynamic dropdowns:
+            // const selectedUniversity = universities.find(u => u.id.toString() === formData.university);
+            // const universityName = selectedUniversity ? selectedUniversity.name : formData.university;
 
-            // Submit with university name (not ID) for backwards compatibility
             const submitData = {
-                university: universityName,
+                university: STATIC_UNIVERSITY,
                 degree: formData.degree,
                 year: formData.year
             };
@@ -338,83 +339,42 @@ function BecomeScholar() {
                             )}
 
                             <form onSubmit={handleSubmit}>
-                                {/* Country Dropdown */}
+                                {/* Country - Static for now */}
                                 <div className="mb-4">
                                     <label className="form-label fw-semibold">Country <span className="text-danger">*</span></label>
-                                    <select 
-                                        name="country"
-                                        className="form-select py-2" 
-                                        value={formData.country}
-                                        onChange={handleChange}
-                                        required
-                                        disabled={loadingCountries}
-                                    >
-                                        <option value="">
-                                            {loadingCountries ? 'Loading countries...' : 'Select your country'}
-                                        </option>
-                                        {countries.map((country) => (
-                                            <option key={country.id} value={country.id}>
-                                                {country.name}
-                                            </option>
-                                        ))}
-                                    </select>
+                                    <input 
+                                        type="text"
+                                        className="form-control py-2" 
+                                        value={STATIC_COUNTRY}
+                                        readOnly
+                                        style={{ backgroundColor: '#f8f9fa' }}
+                                    />
                                 </div>
 
-                                {/* University Dropdown - depends on Country */}
+                                {/* University - Static for now */}
                                 <div className="mb-4">
                                     <label className="form-label fw-semibold">University <span className="text-danger">*</span></label>
-                                    <select 
-                                        name="university"
-                                        className="form-select py-2" 
-                                        value={formData.university}
-                                        onChange={handleChange}
-                                        required
-                                        disabled={!formData.country || loadingUniversities}
-                                    >
-                                        <option value="">
-                                            {!formData.country 
-                                                ? 'Select a country first' 
-                                                : loadingUniversities 
-                                                    ? 'Loading universities...' 
-                                                    : 'Select your university'}
-                                        </option>
-                                        {universities.map((uni) => (
-                                            <option key={uni.id} value={uni.id}>
-                                                {uni.name} {uni.short_name ? `(${uni.short_name})` : ''}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    {formData.country && universities.length === 0 && !loadingUniversities && (
-                                        <small className="text-muted">
-                                            No universities listed for this country yet. Please contact admin if your university is missing.
-                                        </small>
-                                    )}
+                                    <input 
+                                        type="text"
+                                        className="form-control py-2" 
+                                        value={STATIC_UNIVERSITY}
+                                        readOnly
+                                        style={{ backgroundColor: '#f8f9fa' }}
+                                    />
                                 </div>
 
-                                {/* Degree Program Dropdown - depends on University */}
+                                {/* Degree Program - Text input for now */}
                                 <div className="mb-4">
                                     <label className="form-label fw-semibold">Degree Program <span className="text-danger">*</span></label>
-                                    <select 
+                                    <input 
+                                        type="text"
                                         name="degree"
-                                        className="form-select py-2" 
+                                        className="form-control py-2" 
+                                        placeholder="e.g., Business Information Technology"
                                         value={formData.degree}
                                         onChange={handleChange}
                                         required
-                                        disabled={!formData.university || loadingPrograms}
-                                    >
-                                        <option value="">
-                                            {!formData.university 
-                                                ? 'Select a university first' 
-                                                : loadingPrograms 
-                                                    ? 'Loading programs...' 
-                                                    : 'Select your degree program'}
-                                        </option>
-                                        {degreePrograms.map((program, index) => (
-                                            <option key={index} value={program.program}>
-                                                {program.program}
-                                            </option>
-                                        ))}
-                                    </select>
+                                    />
                                 </div>
 
                                 <div className="mb-4">
