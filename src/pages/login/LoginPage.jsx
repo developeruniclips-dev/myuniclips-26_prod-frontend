@@ -26,6 +26,10 @@ function LoginPage() {
 
     const roles = result.user?.roles || [];
 
+    // SuperAdmins go to SuperAdmin control center
+    if (roles.includes("SuperAdmin"))
+      return navigate("/superadmin-dashboard");
+
     // Admins go to admin dashboard
     if (roles.includes("Admin"))
       return navigate("/admin-dashboard");

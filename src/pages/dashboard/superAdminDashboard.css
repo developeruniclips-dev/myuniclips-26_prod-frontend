@@ -1,0 +1,174 @@
+/* SuperAdmin Dashboard Distinctive Styling */
+
+.superadmin-dashboard {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+}
+
+.superadmin-header {
+  background: linear-gradient(135deg, #e94560 0%, #ff6b6b 100%);
+  box-shadow: 0 4px 20px rgba(233, 69, 96, 0.4);
+}
+
+.superadmin-card {
+  background: rgba(255, 255, 255, 0.95);
+  border: none;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+/* Stats Cards */
+.stat-card {
+  border: none;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+}
+
+.stat-card-users {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.stat-card-videos {
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  color: white;
+}
+
+.stat-card-revenue {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+}
+
+.stat-card-security {
+  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+  color: #333;
+}
+
+.stat-card .text-muted {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.stat-card-security .text-muted {
+  color: rgba(0, 0, 0, 0.6) !important;
+}
+
+.stat-icon {
+  font-size: 2.5rem;
+  opacity: 0.8;
+}
+
+/* Custom Tabs */
+.superadmin-tabs .nav-link {
+  color: #6c757d;
+  border: none;
+  border-bottom: 3px solid transparent;
+  padding: 12px 24px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.superadmin-tabs .nav-link:hover {
+  color: #e94560;
+  border-bottom-color: rgba(233, 69, 96, 0.3);
+}
+
+.superadmin-tabs .nav-link.active {
+  color: #e94560;
+  background: transparent;
+  border-bottom-color: #e94560;
+}
+
+/* Table Styling */
+.superadmin-table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.superadmin-table thead th {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  color: white;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.5px;
+  padding: 16px;
+  border: none;
+}
+
+.superadmin-table thead th:first-child {
+  border-radius: 8px 0 0 0;
+}
+
+.superadmin-table thead th:last-child {
+  border-radius: 0 8px 0 0;
+}
+
+.superadmin-table tbody tr {
+  transition: background-color 0.2s ease;
+}
+
+.superadmin-table tbody tr:hover {
+  background-color: rgba(233, 69, 96, 0.05);
+}
+
+.superadmin-table tbody td {
+  padding: 14px 16px;
+  vertical-align: middle;
+  border-bottom: 1px solid #eee;
+}
+
+/* Badge customization */
+.superadmin-dashboard .badge {
+  padding: 6px 12px;
+  font-weight: 500;
+}
+
+/* Buttons */
+.superadmin-dashboard .btn-primary {
+  background: linear-gradient(135deg, #e94560 0%, #ff6b6b 100%);
+  border: none;
+  box-shadow: 0 4px 15px rgba(233, 69, 96, 0.3);
+}
+
+.superadmin-dashboard .btn-primary:hover {
+  background: linear-gradient(135deg, #d63850 0%, #e95555 100%);
+  box-shadow: 0 6px 20px rgba(233, 69, 96, 0.4);
+}
+
+.superadmin-dashboard .btn-outline-light:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Modal customization */
+.superadmin-dashboard .modal-header.bg-dark {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%) !important;
+}
+
+/* Form controls */
+.superadmin-dashboard .form-control:focus,
+.superadmin-dashboard .form-select:focus {
+  border-color: #e94560;
+  box-shadow: 0 0 0 0.2rem rgba(233, 69, 96, 0.25);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .superadmin-header h1 {
+    font-size: 1.5rem;
+  }
+  
+  .stat-card h2 {
+    font-size: 1.5rem;
+  }
+  
+  .superadmin-tabs .nav-link {
+    padding: 10px 12px;
+    font-size: 0.85rem;
+  }
+}

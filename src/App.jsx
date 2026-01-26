@@ -17,6 +17,7 @@ import "bootstrap-icons/font/bootstrap-icons.css";
 import "bootstrap/dist/css/bootstrap.min.css";
 import ScholarDashboard from "./pages/dashboard/scholardashboard";
 import AdminDashboard from "./pages/dashboard/adminDashboard";
+import SuperAdminDashboard from "./pages/dashboard/SuperAdminDashboard";
 import BecomeScholar from "./pages/dashboard/becomeScholar";
 import NewCourse from "./pages/dashboard/newCourse";
 import LoginPage from "./pages/login/LoginPage";
@@ -109,6 +110,14 @@ function App() {
           />
 
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
+          <Route 
+            path="/superadmin-dashboard" 
+            element={
+              <ProtectedRoute roles={["SuperAdmin"]}>
+                <SuperAdminDashboard />
+              </ProtectedRoute>
+            } 
+          />
           <Route path="/become-scholar" element={<><BecomeScholar /><Footer /></>} />
           <Route path="/create-course" element={<NewCourse />} />
           <Route path="register" element={<><RegisterPage /><Footer /></>} />

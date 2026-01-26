@@ -22,10 +22,48 @@ function AdminDashboard() {
   const [pricingSearch, setPricingSearch] = useState(""); // Search filter for course pricing
   const [expandedBundles, setExpandedBundles] = useState({}); // Track expanded bundles in video management
   const [platformBalance, setPlatformBalance] = useState({ available: 0, pending: 0 }); // Platform Stripe balance
+  
+  // Profile state for admin profile editing
+  const [adminProfile, setAdminProfile] = useState(null);
+  const [profileEdit, setProfileEdit] = useState({});
+  const [profileLoading, setProfileLoading] = useState(false);
 
   // Check if user is SuperAdmin (has SuperAdmin role)
   const isSuperAdmin = user?.roles?.includes('SuperAdmin');
   const isAdmin = user?.roles?.includes('Admin') || isSuperAdmin;
+
+  // Fetch admin profile
+  const fetchAdminProfile = async () => {
+    if (!user?.token) return;
+    try {
+      const res = await axios.get(
+        `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/admin/profile`,
+        { headers: { Authorization: `Bearer ${user.token}` } }
+      );
+      setAdminProfile(res.data);
+      setProfileEdit(res.data);
+    } catch (err) {
+      console.error("Error fetching admin profile:", err);
+    }
+  };
+
+  // Handle profile update
+  const handleUpdateProfile = async () => {
+    setProfileLoading(true);
+    try {
+      await axios.put(
+        `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/admin/profile`,
+        profileEdit,
+        { headers: { Authorization: `Bearer ${user.token}` } }
+      );
+      alert("Profile updated successfully!");
+      fetchAdminProfile();
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to update profile");
+    } finally {
+      setProfileLoading(false);
+    }
+  };
 
   useEffect(() => {
     // Reset all state when user changes to prevent stale data
@@ -181,6 +219,7 @@ function AdminDashboard() {
     };
 
     fetchData();
+    fetchAdminProfile();
   }, [user?.id, user?.token]); // More specific dependencies
 
   const handleApproveScholar = async (userId) => {
@@ -384,6 +423,17 @@ function AdminDashboard() {
                 </div>
                 <h6 className="fw-bold mb-1">{isSuperAdmin ? 'Super Administrator' : 'Administrator'}</h6>
                 <p className="text-muted small mb-3">{isSuperAdmin ? 'Full System Control' : 'Operations Management'}</p>
+                {isSuperAdmin && (
+                  <Button 
+                    variant="danger" 
+                    size="sm" 
+                    className="px-3 me-2 mb-2"
+                    onClick={() => navigate('/superadmin-dashboard')}
+                  >
+                    <i className="bi bi-shield-lock me-1"></i>
+                    Control Center
+                  </Button>
+                )}
                 <Button 
                   variant="outline-danger" 
                   size="sm" 
@@ -1257,6 +1307,118 @@ function AdminDashboard() {
                 </div>
               </Tab>
               )}
+
+              {/* My Profile Tab */}
+              <Tab eventKey="profile" title={<><i className="bi bi-person-gear me-1"></i>My Profile</>}>
+                <Row>
+                  <Col md={8}>
+                    <h5 className="mb-4">Edit Your Profile</h5>
+                    <Form>
+                      <Row>
+                        <Col md={6}>
+                          <Form.Group className="mb-3">
+                            <Form.Label>Username</Form.Label>
+                            <Form.Control type="text" value={adminProfile?.username || ''} disabled />
+                          </Form.Group>
+                        </Col>
+                        <Col md={6}>
+                          <Form.Group className="mb-3">
+                            <Form.Label>Email</Form.Label>
+                            <Form.Control type="email" value={adminProfile?.email || ''} disabled />
+                          </Form.Group>
+                        </Col>
+                      </Row>
+                      <Row>
+                        <Col md={6}>
+                          <Form.Group className="mb-3">
+                            <Form.Label>First Name</Form.Label>
+                            <Form.Control
+                              type="text"
+                              value={profileEdit.firstname || ''}
+                              onChange={(e) => setProfileEdit({...profileEdit, firstname: e.target.value})}
+                            />
+                          </Form.Group>
+                        </Col>
+                        <Col md={6}>
+                          <Form.Group className="mb-3">
+                            <Form.Label>Last Name</Form.Label>
+                            <Form.Control
+                              type="text"
+                              value={profileEdit.lastname || ''}
+                              onChange={(e) => setProfileEdit({...profileEdit, lastname: e.target.value})}
+                            />
+                          </Form.Group>
+                        </Col>
+                      </Row>
+                      <Row>
+                        <Col md={6}>
+                          <Form.Group className="mb-3">
+                            <Form.Label>Display Name</Form.Label>
+                            <Form.Control
+                              type="text"
+                              value={profileEdit.display_name || ''}
+                              onChange={(e) => setProfileEdit({...profileEdit, display_name: e.target.value})}
+                              placeholder="How you want to be shown"
+                            />
+                          </Form.Group>
+                        </Col>
+                        <Col md={6}>
+                          <Form.Group className="mb-3">
+                            <Form.Label>Phone</Form.Label>
+                            <Form.Control
+                              type="text"
+                              value={profileEdit.phone || ''}
+                              onChange={(e) => setProfileEdit({...profileEdit, phone: e.target.value})}
+                              placeholder="+358 12 345 6789"
+                            />
+                          </Form.Group>
+                        </Col>
+                      </Row>
+                      <Form.Group className="mb-3">
+                        <Form.Label>Department</Form.Label>
+                        <Form.Control
+                          type="text"
+                          value={profileEdit.department || ''}
+                          onChange={(e) => setProfileEdit({...profileEdit, department: e.target.value})}
+                          placeholder="e.g., Engineering, Marketing"
+                        />
+                      </Form.Group>
+                      <Form.Group className="mb-3">
+                        <Form.Label>Bio</Form.Label>
+                        <Form.Control
+                          as="textarea"
+                          rows={3}
+                          value={profileEdit.bio || ''}
+                          onChange={(e) => setProfileEdit({...profileEdit, bio: e.target.value})}
+                          placeholder="Tell us about yourself..."
+                        />
+                      </Form.Group>
+                      <Button variant="primary" onClick={handleUpdateProfile} disabled={profileLoading}>
+                        {profileLoading ? 'Saving...' : 'Save Profile'}
+                      </Button>
+                    </Form>
+                  </Col>
+                  <Col md={4}>
+                    <Card className="bg-light border-0">
+                      <Card.Body className="text-center">
+                        <div className="rounded-circle bg-primary bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style={{ width: '80px', height: '80px' }}>
+                          <i className="bi bi-person-fill fs-1 text-primary"></i>
+                        </div>
+                        <h5 className="mb-1">{adminProfile?.display_name || adminProfile?.firstname || adminProfile?.username}</h5>
+                        <p className="text-muted mb-2">{adminProfile?.email}</p>
+                        <Badge bg={isSuperAdmin ? 'danger' : 'primary'}>
+                          {isSuperAdmin ? '🛡️ SuperAdmin' : '👤 Admin'}
+                        </Badge>
+                        {adminProfile?.department && (
+                          <p className="text-muted mt-2 mb-0 small">
+                            <i className="bi bi-building me-1"></i>{adminProfile.department}
+                          </p>
+                        )}
+                      </Card.Body>
+                    </Card>
+                  </Col>
+                </Row>
+              </Tab>
             </Tabs>
           </Card.Body>
         </Card>
