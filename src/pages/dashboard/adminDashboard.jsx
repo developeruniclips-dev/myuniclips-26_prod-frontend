@@ -32,6 +32,13 @@ function AdminDashboard() {
   const isSuperAdmin = user?.roles?.includes('SuperAdmin');
   const isAdmin = user?.roles?.includes('Admin') || isSuperAdmin;
 
+  // Redirect SuperAdmin to their dedicated dashboard
+  useEffect(() => {
+    if (isSuperAdmin) {
+      navigate('/superadmin-dashboard', { replace: true });
+    }
+  }, [isSuperAdmin, navigate]);
+
   // Fetch admin profile
   const fetchAdminProfile = async () => {
     if (!user?.token) return;
