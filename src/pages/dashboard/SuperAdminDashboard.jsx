@@ -74,16 +74,16 @@ function SuperAdminDashboard() {
         `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/admin/users`,
         { headers: { Authorization: `Bearer ${user.token}` } }
       );
-      setAllUsers(res.data || []);
+      // Map the data to ensure consistent property names
+      const usersData = (res.data || []).map(u => ({
+        ...u,
+        username: u.username || `${u.fname || ''} ${u.lname || ''}`.trim() || u.email,
+        firstname: u.firstname || u.fname,
+        lastname: u.lastname || u.lname
+      }));
+      setAllUsers(usersData);
     } catch (err) {
       console.error("Error fetching users:", err);
-      // Fallback to public users endpoint
-      try {
-        const res = await axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/users`);
-        setAllUsers(res.data || []);
-      } catch (e) {
-        console.error("Fallback users fetch failed:", e);
-      }
     }
   };
 
@@ -479,18 +479,29 @@ function SuperAdminDashboard() {
 
   const getRoleBadgeClass = (roles) => {
     if (!roles) return 'learner';
-    if (roles.includes('SuperAdmin')) return 'superadmin';
-    if (roles.includes('Admin')) return 'admin';
-    if (roles.includes('Scholar')) return 'scholar';
+    const roleStr = String(roles).toLowerCase();
+    if (roleStr.includes('superadmin')) return 'superadmin';
+    if (roleStr.includes('admin')) return 'admin';
+    if (roleStr.includes('scholar')) return 'scholar';
     return 'learner';
   };
 
   const getRoleIcon = (roles) => {
     if (!roles) return '📚';
-    if (roles.includes('SuperAdmin')) return '🛡️';
-    if (roles.includes('Admin')) return '👤';
-    if (roles.includes('Scholar')) return '🎓';
+    const roleStr = String(roles).toLowerCase();
+    if (roleStr.includes('superadmin')) return '🛡️';
+    if (roleStr.includes('admin')) return '👤';
+    if (roleStr.includes('scholar')) return '🎓';
     return '📚';
+  };
+
+  const getPrimaryRole = (roles) => {
+    if (!roles) return 'Learner';
+    const roleStr = String(roles);
+    if (roleStr.includes('SuperAdmin')) return 'SuperAdmin';
+    if (roleStr.includes('Admin')) return 'Admin';
+    if (roleStr.includes('Scholar')) return 'Scholar';
+    return 'Learner';
   };
 
   // Video bundles
@@ -890,7 +901,7 @@ function SuperAdminDashboard() {
                           </td>
                           <td>
                             <span className={`role-badge ${getRoleBadgeClass(u.roles)}`}>
-                              {getRoleIcon(u.roles)} {u.roles?.split(',')[0] || 'Learner'}
+                              {getRoleIcon(u.roles)} {getPrimaryRole(u.roles)}
                             </span>
                           </td>
                           <td>{new Date(u.created_at).toLocaleDateString()}</td>
@@ -898,7 +909,7 @@ function SuperAdminDashboard() {
                             <div className="action-buttons">
                               <select
                                 className="role-select"
-                                value={u.roles?.split(',')[0] || 'Learner'}
+                                value={getPrimaryRole(u.roles)}
                                 onChange={(e) => handleUpdateRole(u.id, e.target.value)}
                                 disabled={u.id === user.id}
                               >
