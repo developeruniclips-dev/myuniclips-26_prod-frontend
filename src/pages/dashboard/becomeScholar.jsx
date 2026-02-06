@@ -23,13 +23,32 @@ function BecomeScholar() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     
+    // Degree programs dropdown
+    const [degreePrograms, setDegreePrograms] = useState([]);
+    const [loadingPrograms, setLoadingPrograms] = useState(true);
+
+    // Fetch all degree programs from subjects table on mount
+    useEffect(() => {
+        const fetchDegreePrograms = async () => {
+            try {
+                const response = await axios.get(
+                    `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/locations/programs/all`
+                );
+                setDegreePrograms(response.data);
+            } catch (err) {
+                console.error('Error fetching degree programs:', err);
+            } finally {
+                setLoadingPrograms(false);
+            }
+        };
+        fetchDegreePrograms();
+    }, []);
+
     // CASCADING DROPDOWN FEATURE - Uncomment when ready to enable dynamic dropdowns
     // const [countries, setCountries] = useState([]);
     // const [universities, setUniversities] = useState([]);
-    // const [degreePrograms, setDegreePrograms] = useState([]);
     // const [loadingCountries, setLoadingCountries] = useState(true);
     // const [loadingUniversities, setLoadingUniversities] = useState(false);
-    // const [loadingPrograms, setLoadingPrograms] = useState(false);
 
     // CASCADING DROPDOWN FEATURE - Fetch countries on mount
     // useEffect(() => {
@@ -363,18 +382,26 @@ function BecomeScholar() {
                                     />
                                 </div>
 
-                                {/* Degree Program - Text input for now */}
+                                {/* Degree Program - Dropdown from subjects table */}
                                 <div className="mb-4">
                                     <label className="form-label fw-semibold">Degree Program <span className="text-danger">*</span></label>
-                                    <input 
-                                        type="text"
+                                    <select 
                                         name="degree"
-                                        className="form-control py-2" 
-                                        placeholder="e.g., Business Information Technology"
+                                        className="form-select py-2" 
                                         value={formData.degree}
                                         onChange={handleChange}
                                         required
-                                    />
+                                        disabled={loadingPrograms}
+                                    >
+                                        <option value="">
+                                            {loadingPrograms ? 'Loading programs...' : 'Select your degree program'}
+                                        </option>
+                                        {degreePrograms.map((program, index) => (
+                                            <option key={index} value={program.program}>
+                                                {program.program}
+                                            </option>
+                                        ))}
+                                    </select>
                                 </div>
 
                                 <div className="mb-4">
