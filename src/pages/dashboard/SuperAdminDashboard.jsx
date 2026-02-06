@@ -293,7 +293,7 @@ function SuperAdminDashboard() {
                 <div className="d-flex justify-content-between align-items-center">
                   <div>
                     <h6 className="text-uppercase text-muted mb-1">Total Users</h6>
-                    <h2 className="mb-0">{allUsers.length}</h2>
+                    <h2 className="mb-0">{stats?.totalUsers || allUsers.length}</h2>
                   </div>
                   <div className="stat-icon">
                     <i className="bi bi-people-fill"></i>
@@ -323,7 +323,7 @@ function SuperAdminDashboard() {
                 <div className="d-flex justify-content-between align-items-center">
                   <div>
                     <h6 className="text-uppercase text-muted mb-1">Total Revenue</h6>
-                    <h2 className="mb-0">€{(stats?.revenue?.total_revenue || 0).toFixed(2)}</h2>
+                    <h2 className="mb-0">€{parseFloat(stats?.revenue?.total_revenue || 0).toFixed(2)}</h2>
                   </div>
                   <div className="stat-icon">
                     <i className="bi bi-currency-euro"></i>
@@ -338,7 +338,7 @@ function SuperAdminDashboard() {
                 <div className="d-flex justify-content-between align-items-center">
                   <div>
                     <h6 className="text-uppercase text-muted mb-1">Security Issues</h6>
-                    <h2 className="mb-0">{stats?.security?.pending || 0}</h2>
+                    <h2 className="mb-0">{stats?.security?.pending || securityUpdates.filter(s => s.status !== 'resolved').length}</h2>
                   </div>
                   <div className="stat-icon">
                     <i className="bi bi-shield-exclamation"></i>

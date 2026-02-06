@@ -19,7 +19,7 @@ function Testimonials() {
       isFounder: true
     },
     {
-      name: "Kossi Aziadzo",
+      name: "K. Aziadzo",
       role: "UniClips Scholar",
       avatar: "KA",
       quote: "Teaching on UniClips gives me a way to help other students using the same materials I learned with. I focus on explaining concepts simply, without pressure, just the way I would explain them to a friend. Knowing that students can learn faster — and that my work is valued — is what makes UniClips special.",
