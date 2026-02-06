@@ -559,7 +559,9 @@ function SuperAdminDashboard() {
           <div className="d-flex justify-content-between align-items-center">
             <div>
               <h1><i className="bi bi-shield-lock-fill me-2"></i>SuperAdmin Dashboard</h1>
-              <p className="subtitle mb-0">Full system control and management</p>
+              <p className="subtitle mb-0">
+                Welcome back, <strong>{adminProfile?.display_name || adminProfile?.firstname || user?.email?.split('@')[0] || 'Admin'}</strong> — Full system control
+              </p>
             </div>
             <button 
               className="btn-action outline"
