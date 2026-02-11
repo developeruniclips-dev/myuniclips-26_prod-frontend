@@ -6,6 +6,37 @@ import { UPLOADS_BASE_URL } from "../../api/axios";
 import { useAuth } from "../../context/temp";
 import "./superAdminDashboard.css";
 
+// Inline expandable text component for expertise
+const ExpertiseText = ({ text, maxLength = 50 }) => {
+  const [expanded, setExpanded] = useState(false);
+  const needsTruncation = text.length > maxLength;
+  
+  return (
+    <div style={{ fontSize: '0.85rem', lineHeight: '1.5' }}>
+      <span style={{ color: '#475569' }}>
+        {expanded || !needsTruncation ? text : `${text.substring(0, maxLength)}...`}
+      </span>
+      {needsTruncation && (
+        <button
+          onClick={() => setExpanded(!expanded)}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: '#6366f1',
+            cursor: 'pointer',
+            padding: '0 4px',
+            fontSize: '0.8rem',
+            fontWeight: '500',
+            marginLeft: '4px'
+          }}
+        >
+          {expanded ? 'Show less' : 'Read more'}
+        </button>
+      )}
+    </div>
+  );
+};
+
 function SuperAdminDashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -738,26 +769,7 @@ function SuperAdminDashboard() {
                             <td><strong>{app.subject_name || `Subject #${app.subject_id}`}</strong></td>
                             <td style={{ maxWidth: '250px' }}>
                               {app.expertise ? (
-                                <details className="expertise-details">
-                                  <summary style={{ cursor: 'pointer', color: '#6366f1', fontSize: '0.85rem' }}>
-                                    {app.expertise.length > 30 ? `${app.expertise.substring(0, 30)}...` : app.expertise}
-                                    {app.expertise.length > 30 && <small style={{ marginLeft: '4px', opacity: 0.7 }}>(click to read more)</small>}
-                                  </summary>
-                                  <div style={{ 
-                                    marginTop: '10px', 
-                                    padding: '12px', 
-                                    background: '#f1f5f9', 
-                                    borderRadius: '8px',
-                                    fontSize: '0.85rem', 
-                                    color: '#334155', 
-                                    whiteSpace: 'pre-wrap',
-                                    maxHeight: '200px',
-                                    overflowY: 'auto',
-                                    border: '1px solid #e2e8f0'
-                                  }}>
-                                    {app.expertise}
-                                  </div>
-                                </details>
+                                <ExpertiseText text={app.expertise} />
                               ) : (
                                 <span className="text-muted">No expertise provided</span>
                               )}
