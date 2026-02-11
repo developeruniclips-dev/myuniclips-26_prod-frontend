@@ -689,7 +689,31 @@ function AdminDashboard() {
                             <td><small>{app.email}</small></td>
                             <td><strong>{app.subject_name || `Subject #${app.subject_id}`}</strong></td>
                             <td><small>{app.degree}</small></td>
-                            <td><small className="text-muted">{app.expertise?.substring(0, 50)}{app.expertise?.length > 50 ? '...' : ''}</small></td>
+                            <td style={{ maxWidth: '250px' }}>
+                              {app.expertise ? (
+                                <details className="expertise-details">
+                                  <summary style={{ cursor: 'pointer', color: '#0d6efd', fontSize: '0.85rem' }}>
+                                    {app.expertise.length > 30 ? `${app.expertise.substring(0, 30)}...` : app.expertise}
+                                    {app.expertise.length > 30 && <small className="ms-1">(click to read more)</small>}
+                                  </summary>
+                                  <div style={{ 
+                                    marginTop: '10px', 
+                                    padding: '12px', 
+                                    background: '#f8f9fa', 
+                                    borderRadius: '8px',
+                                    fontSize: '0.85rem', 
+                                    color: '#333', 
+                                    whiteSpace: 'pre-wrap',
+                                    maxHeight: '200px',
+                                    overflowY: 'auto'
+                                  }}>
+                                    {app.expertise}
+                                  </div>
+                                </details>
+                              ) : (
+                                <small className="text-muted">No expertise provided</small>
+                              )}
+                            </td>
                             <td><small>{new Date(app.created_at).toLocaleDateString()}</small></td>
                             <td>
                               {app.approved === 1 ? (

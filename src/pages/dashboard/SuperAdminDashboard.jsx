@@ -714,6 +714,7 @@ function SuperAdminDashboard() {
                         <tr>
                           <th>Scholar</th>
                           <th>Subject</th>
+                          <th>Expertise</th>
                           <th>Degree</th>
                           <th>Applied</th>
                           <th>Status</th>
@@ -735,6 +736,32 @@ function SuperAdminDashboard() {
                               </div>
                             </td>
                             <td><strong>{app.subject_name || `Subject #${app.subject_id}`}</strong></td>
+                            <td style={{ maxWidth: '250px' }}>
+                              {app.expertise ? (
+                                <details className="expertise-details">
+                                  <summary style={{ cursor: 'pointer', color: '#6366f1', fontSize: '0.85rem' }}>
+                                    {app.expertise.length > 30 ? `${app.expertise.substring(0, 30)}...` : app.expertise}
+                                    {app.expertise.length > 30 && <small style={{ marginLeft: '4px', opacity: 0.7 }}>(click to read more)</small>}
+                                  </summary>
+                                  <div style={{ 
+                                    marginTop: '10px', 
+                                    padding: '12px', 
+                                    background: '#f1f5f9', 
+                                    borderRadius: '8px',
+                                    fontSize: '0.85rem', 
+                                    color: '#334155', 
+                                    whiteSpace: 'pre-wrap',
+                                    maxHeight: '200px',
+                                    overflowY: 'auto',
+                                    border: '1px solid #e2e8f0'
+                                  }}>
+                                    {app.expertise}
+                                  </div>
+                                </details>
+                              ) : (
+                                <span className="text-muted">No expertise provided</span>
+                              )}
+                            </td>
                             <td>{app.degree}</td>
                             <td>{new Date(app.created_at).toLocaleDateString()}</td>
                             <td>
