@@ -410,7 +410,7 @@ function SuperAdminDashboard() {
     try {
       await axios.put(
         `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/subjects/${subjectId}/price`,
-        { bundle_price: parseFloat(newPrice) },
+        { bundlePrice: parseFloat(newPrice) },
         { headers: { Authorization: `Bearer ${user.token}` } }
       );
       alert("Price updated!");
