@@ -995,7 +995,7 @@ function AdminDashboard() {
                               <td>{u.fname} {u.lname}</td>
                               <td>{u.email}</td>
                               <td>
-                                {u.is_scholar === 1 || u.isScholar === 1 ? (
+                                {Number(u.is_scholar) === 1 || u.roles?.includes('Scholar') ? (
                                   <Badge bg="primary">Yes</Badge>
                                 ) : (
                                   <Badge bg="secondary">No</Badge>
