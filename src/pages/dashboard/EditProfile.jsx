@@ -15,11 +15,9 @@ function EditProfile() {
     favoriteSubject: "",
     favoriteFood: "",
     hobbies: "",
-    iban: "",
   });
   const [profileImage, setProfileImage] = useState(null);
   const [profileImagePreview, setProfileImagePreview] = useState(null);
-  const [taxCard, setTaxCard] = useState(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
   const [isScholar, setIsScholar] = useState(false);
@@ -48,7 +46,6 @@ function EditProfile() {
           favoriteSubject: profile.favorite_subject || "",
           favoriteFood: profile.favorite_food || "",
           hobbies: profile.hobbies || "",
-          iban: profile.iban || "",
         });
         setCharCounts({
           bio: (profile.bio || "").length,
@@ -108,9 +105,6 @@ function EditProfile() {
       case 'hobbies':
         if (value.length > 300) error = 'Cannot exceed 300 characters';
         break;
-      case 'iban':
-        if (value && !/^[A-Z]{2}[0-9]{2}[A-Z0-9]{1,30}$/.test(value)) error = 'Invalid IBAN format';
-        break;
     }
     
     if (error) {
@@ -130,16 +124,7 @@ function EditProfile() {
     }
   };
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        setMessage({ type: "warning", text: "File must be less than 5MB" });
-        return;
-      }
-      setTaxCard(file);
-    }
-  };
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -162,10 +147,6 @@ function EditProfile() {
       if (profileImage) {
         data.append("profileImage", profileImage);
       }
-      
-      if (taxCard) {
-        data.append("taxCard", taxCard);
-      }
 
       const res = await axios.put(
         `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/users/profile`,
@@ -180,9 +161,8 @@ function EditProfile() {
 
       setMessage({ type: "success", text: "Profile updated successfully! ✨" });
       
-      // Clear file inputs
+      // Clear file input
       setProfileImage(null);
-      setTaxCard(null);
       
       // Scroll to top to show success message
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -403,46 +383,7 @@ function EditProfile() {
               </Form.Control.Feedback>
             </Form.Group>
 
-            {/* Scholar-specific fields */}
-            {isScholar && (
-              <>
-                <hr className="my-4" />
-                <h5 className="fw-bold mb-3 text-success">
-                  <i className="bi bi-mortarboard-fill me-2"></i>
-                  Scholar Payment Details
-                </h5>
-                
-                <Form.Group className="mb-3">
-                  <Form.Label>IBAN (Bank Account Number)</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="iban"
-                    value={formData.iban}
-                    onChange={handleChange}
-                    placeholder="FI1234567890123456"
-                    isInvalid={!!validationErrors.iban}
-                  />
-                  <Form.Control.Feedback type="invalid">
-                    {validationErrors.iban}
-                  </Form.Control.Feedback>
-                  <Form.Text className="text-muted">
-                    Enter your IBAN for receiving payments from course sales
-                  </Form.Text>
-                </Form.Group>
 
-                <Form.Group className="mb-4">
-                  <Form.Label>Tax Card</Form.Label>
-                  <Form.Control
-                    type="file"
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    onChange={handleFileChange}
-                  />
-                  <Form.Text className="text-muted">
-                    Upload your tax card (PDF, JPG, or PNG, max 5MB)
-                  </Form.Text>
-                </Form.Group>
-              </>
-            )}
 
             <div className="d-flex gap-3 justify-content-between">
               <div className="d-flex gap-2">

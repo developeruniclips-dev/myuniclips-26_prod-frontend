@@ -717,8 +717,18 @@ function SuperAdminDashboard() {
                                     <i className="bi bi-x-lg"></i> Reject
                                   </button>
                                 </div>
+                              ) : app.stripe_onboarding_complete ? (
+                                <span className="status-badge success">
+                                  <i className="bi bi-check-circle me-1"></i>Stripe Connected
+                                </span>
+                              ) : app.stripe_account_id ? (
+                                <span className="status-badge warning">
+                                  <i className="bi bi-exclamation-triangle me-1"></i>Stripe Incomplete
+                                </span>
                               ) : (
-                                <span className="status-badge secondary">Completed</span>
+                                <span className="status-badge secondary">
+                                  <i className="bi bi-clock me-1"></i>Awaiting Stripe
+                                </span>
                               )}
                             </td>
                           </tr>
@@ -791,8 +801,14 @@ function SuperAdminDashboard() {
                                     <i className="bi bi-x-lg"></i> Reject
                                   </button>
                                 </div>
+                              ) : app.video_count > 0 ? (
+                                <span className="status-badge success">
+                                  <i className="bi bi-camera-video me-1"></i>{app.approved_video_count}/{app.video_count} Videos
+                                </span>
                               ) : (
-                                <span className="status-badge secondary">Completed</span>
+                                <span className="status-badge warning">
+                                  <i className="bi bi-upload me-1"></i>No Videos Yet
+                                </span>
                               )}
                             </td>
                           </tr>

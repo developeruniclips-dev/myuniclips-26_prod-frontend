@@ -128,16 +128,19 @@ function AdminDashboard() {
       console.log("User has token:", !!user?.token);
       
       try {
-        // Fetch all users (no auth required)
+        // Fetch all users (requires Admin/SuperAdmin auth)
         console.log("Fetching users...");
-        try {
-          const usersRes = await axios.get(
-            `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/users`
-          );
-          console.log("Users fetched:", usersRes.data);
-          setUsers(Array.isArray(usersRes.data) ? usersRes.data : []);
-        } catch (err) {
-          console.error("Error fetching users:", err);
+        if (user?.token) {
+          try {
+            const usersRes = await axios.get(
+              `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/admin/users`,
+              { headers: { Authorization: `Bearer ${user.token}` } }
+            );
+            console.log("Users fetched:", usersRes.data);
+            setUsers(Array.isArray(usersRes.data) ? usersRes.data : []);
+          } catch (err) {
+            console.error("Error fetching users:", err);
+          }
         }
 
         // Only fetch protected endpoints if we have a token
@@ -662,8 +665,18 @@ function AdminDashboard() {
                                     Reject
                                   </Button>
                                 </div>
+                              ) : app.stripe_onboarding_complete ? (
+                                <Badge bg="success">
+                                  <i className="bi bi-check-circle me-1"></i>Stripe Connected
+                                </Badge>
+                              ) : app.stripe_account_id ? (
+                                <Badge bg="warning" text="dark">
+                                  <i className="bi bi-exclamation-triangle me-1"></i>Stripe Incomplete
+                                </Badge>
                               ) : (
-                                <Badge bg="secondary">Completed</Badge>
+                                <Badge bg="secondary">
+                                  <i className="bi bi-clock me-1"></i>Awaiting Stripe
+                                </Badge>
                               )}
                             </td>
                           </tr>
@@ -755,8 +768,14 @@ function AdminDashboard() {
                                     Reject
                                   </Button>
                                 </div>
+                              ) : app.video_count > 0 ? (
+                                <Badge bg="success">
+                                  <i className="bi bi-camera-video me-1"></i>{app.approved_video_count}/{app.video_count} Videos
+                                </Badge>
                               ) : (
-                                <Badge bg="secondary">Completed</Badge>
+                                <Badge bg="warning" text="dark">
+                                  <i className="bi bi-upload me-1"></i>No Videos Yet
+                                </Badge>
                               )}
                             </td>
                           </tr>
