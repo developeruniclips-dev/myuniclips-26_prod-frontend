@@ -81,7 +81,28 @@ export const AuthProvider = ({ children }) => {
       return { ok: true, user: { ...res.data.user, roles: res.data.roles } };
     } catch (err) {
       setLoading(false);
-      return { ok: false, message: err.response?.data?.message || err.message };
+      const status = err.response?.status;
+      const serverMsg = err.response?.data?.message || err.response?.data?.error;
+
+      // Map HTTP status codes to user-friendly messages
+      let friendlyMessage;
+      if (serverMsg) {
+        friendlyMessage = serverMsg;
+      } else if (status === 429) {
+        friendlyMessage = "Too many login attempts. Please wait a few minutes and try again.";
+      } else if (status === 401) {
+        friendlyMessage = "Incorrect email or password. Please try again.";
+      } else if (status === 403) {
+        friendlyMessage = "Your account has been locked. Please contact support or reset your password.";
+      } else if (status === 500) {
+        friendlyMessage = "Something went wrong on our end. Please try again later.";
+      } else if (!err.response) {
+        friendlyMessage = "Unable to connect to the server. Please check your internet connection.";
+      } else {
+        friendlyMessage = "An unexpected error occurred. Please try again.";
+      }
+
+      return { ok: false, message: friendlyMessage };
     }
   };
 
