@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 function EditProfile() {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     fname: "",
@@ -160,6 +160,13 @@ function EditProfile() {
       );
 
       setMessage({ type: "success", text: "Profile updated successfully! ✨" });
+      
+      // Update user context so name changes reflect immediately everywhere
+      updateUser({
+        fname: formData.fname,
+        lname: formData.lname,
+        email: formData.email,
+      });
       
       // Clear file input
       setProfileImage(null);

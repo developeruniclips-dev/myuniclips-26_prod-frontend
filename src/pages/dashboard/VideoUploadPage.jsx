@@ -90,9 +90,9 @@ function VideoUploadPage() {
         setError('Please select a video file');
         return;
       }
-      // Check file size (max 500MB)
-      if (selectedFile.size > 500 * 1024 * 1024) {
-        setError('File size must be less than 500MB');
+      // Check file size (max 800MB)
+      if (selectedFile.size > 800 * 1024 * 1024) {
+        setError('File size must be less than 800MB');
         return;
       }
       setFile(selectedFile);
@@ -197,7 +197,7 @@ function VideoUploadPage() {
                 </div>
               )}
               <Form.Text className="text-muted">
-                Max file size: 500MB. Supported formats: MP4, AVI, MOV, WMV
+                Max file size: 800MB. Supported formats: MP4, AVI, MOV, WMV
               </Form.Text>
             </Form.Group>
 
