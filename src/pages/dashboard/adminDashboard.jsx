@@ -250,7 +250,6 @@ function AdminDashboard() {
           } catch (err) {
             console.error("Error fetching subjects:", err);
           }
-        }
 
           // Fetch orphaned/previous users
           console.log("Fetching previous users...");
