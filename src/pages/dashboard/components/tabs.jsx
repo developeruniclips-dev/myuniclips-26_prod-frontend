@@ -204,7 +204,7 @@ function ScholarTabs() {
   };
 
   // Check if scholar profile is approved
-  const isApproved = scholarProfile?.approved === true;
+  const isApproved = scholarProfile?.approved === 1 || scholarProfile?.approved === true;
 
   // Handle delete course (delete all videos for a subject)
   const handleDeleteCourse = async (subjectId, courseTitle) => {

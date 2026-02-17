@@ -53,6 +53,7 @@ function AdminDashboard() {
   const [pricingSearch, setPricingSearch] = useState(""); // Search filter for course pricing
   const [expandedBundles, setExpandedBundles] = useState({}); // Track expanded bundles in video management
   const [platformBalance, setPlatformBalance] = useState({ available: 0, pending: 0 }); // Platform Stripe balance
+  const [orphanedUsers, setOrphanedUsers] = useState([]); // Previous/deleted users with leftover data
   
   // Profile state for admin profile editing
   const [adminProfile, setAdminProfile] = useState(null);
@@ -251,6 +252,20 @@ function AdminDashboard() {
           }
         }
 
+          // Fetch orphaned/previous users
+          console.log("Fetching previous users...");
+          try {
+            const orphanedRes = await axios.get(
+              `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/admin/users/orphaned`,
+              { headers: { Authorization: `Bearer ${user.token}` } }
+            );
+            console.log("Orphaned users fetched:", orphanedRes.data);
+            setOrphanedUsers(orphanedRes.data.orphanedUsers || []);
+          } catch (err) {
+            console.error("Error fetching orphaned users:", err);
+          }
+        }
+
         console.log("All data fetched, stopping loading");
         setLoading(false);
       } catch (err) {
@@ -415,6 +430,23 @@ function AdminDashboard() {
     } catch (err) {
       console.error("Error deleting user:", err);
       alert(err.response?.data?.message || "Failed to delete user");
+    }
+  };
+
+  const handleCleanupOrphaned = async (userId) => {
+    if (!window.confirm(`Are you sure you want to permanently remove all leftover data for previous user #${userId}? This cannot be undone.`)) {
+      return;
+    }
+    try {
+      await axios.delete(
+        `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/admin/users/orphaned/${userId}`,
+        { headers: { Authorization: `Bearer ${user.token}` } }
+      );
+      alert("Orphaned data cleaned up successfully");
+      setOrphanedUsers(prev => prev.filter(u => u.user_id !== userId));
+    } catch (err) {
+      console.error("Error cleaning up orphaned user:", err);
+      alert(err.response?.data?.message || "Failed to clean up orphaned data");
     }
   };
 
@@ -1021,6 +1053,89 @@ function AdminDashboard() {
                                     title={u.email === user?.email ? "Cannot delete yourself" : "Delete user"}
                                   >
                                     <i className="bi bi-trash"></i> Delete
+                                  </Button>
+                                </td>
+                              )}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </Table>
+                    </>
+                  )}
+                </div>
+              </Tab>
+
+              {/* Previous Users Tab */}
+              <Tab eventKey="previous-users" title={<span>Previous Users {orphanedUsers.length > 0 && <Badge bg="warning" text="dark" className="ms-1">{orphanedUsers.length}</Badge>}</span>}>
+                <div className="table-responsive">
+                  {loading ? (
+                    <div className="text-center py-5">
+                      <div className="spinner-border text-primary" role="status"></div>
+                    </div>
+                  ) : orphanedUsers.length === 0 ? (
+                    <p className="text-center text-muted py-5">No previous users with leftover data found</p>
+                  ) : (
+                    <>
+                      <Alert variant="warning" className="mb-3">
+                        <i className="bi bi-exclamation-triangle me-2"></i>
+                        <strong>Previous Users:</strong> These users were deleted but still have leftover data (roles, scholar profiles, videos, etc.) in the database.
+                      </Alert>
+                      <Table hover>
+                        <thead className="bg-light">
+                          <tr>
+                            <th>User ID</th>
+                            <th>Name</th>
+                            <th>Roles</th>
+                            <th>Scholar Status</th>
+                            <th>Videos</th>
+                            <th>Subjects</th>
+                            {isSuperAdmin && <th>Action</th>}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {orphanedUsers.map((u) => (
+                            <tr key={u.user_id}>
+                              <td>#{u.user_id}</td>
+                              <td>{u.full_name || <span className="text-muted">Unknown</span>}</td>
+                              <td>
+                                {u.roles ? u.roles.split(',').map((role, i) => (
+                                  <Badge key={i} bg="secondary" className="me-1">{role}</Badge>
+                                )) : <span className="text-muted">None</span>}
+                              </td>
+                              <td>
+                                {u.approved === 1 ? (
+                                  <Badge bg="success">Approved Scholar</Badge>
+                                ) : u.application_status === 'pending' ? (
+                                  <Badge bg="warning" text="dark">Pending</Badge>
+                                ) : u.application_status ? (
+                                  <Badge bg="info">{u.application_status}</Badge>
+                                ) : (
+                                  <span className="text-muted">N/A</span>
+                                )}
+                              </td>
+                              <td>
+                                {u.video_count ? (
+                                  <Badge bg="primary">{u.video_count} video{u.video_count !== 1 ? 's' : ''}</Badge>
+                                ) : <span className="text-muted">0</span>}
+                              </td>
+                              <td>
+                                {u.subjects && u.subjects.length > 0 ? (
+                                  u.subjects.map((s, i) => (
+                                    <Badge key={i} bg={s.approved ? 'success' : 'secondary'} className="me-1" title={s.expertise}>
+                                      {s.subject_name || `Subject #${s.subject_id}`}
+                                    </Badge>
+                                  ))
+                                ) : <span className="text-muted">None</span>}
+                              </td>
+                              {isSuperAdmin && (
+                                <td>
+                                  <Button 
+                                    variant="outline-danger" 
+                                    size="sm"
+                                    onClick={() => handleCleanupOrphaned(u.user_id)}
+                                    title="Clean up all leftover data for this user"
+                                  >
+                                    <i className="bi bi-trash"></i> Cleanup
                                   </Button>
                                 </td>
                               )}

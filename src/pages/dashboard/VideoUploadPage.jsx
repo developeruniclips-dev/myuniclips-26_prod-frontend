@@ -6,7 +6,7 @@ import axios from "axios";
 import { Card, Form, Button, Spinner, Alert, Container, Badge } from "react-bootstrap";
 import ScholarTermsModal from "../../components/terms/ScholarTermsModal";
 
-const MAX_VIDEOS_PER_SUBJECT = 7;
+const MAX_VIDEOS_PER_SUBJECT = 10;
 
 function VideoUploadPage() {
   const { user } = useAuth();
