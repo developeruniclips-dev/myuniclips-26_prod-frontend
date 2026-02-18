@@ -1,6 +1,7 @@
 // src/context/temp.jsx
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import axios from "axios";
+import { setupAxiosInterceptor } from "../utils/axiosInterceptor";
 
 export const AuthContext = createContext();
 
@@ -41,6 +42,7 @@ export const AuthProvider = ({ children }) => {
       if (user?.token && isTokenExpired(user.token)) {
         console.log("Token expired, logging out");
         logout();
+        window.location.href = "/";
       }
     };
 
@@ -106,11 +108,16 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = () => {
+  const logout = useCallback(() => {
     setUser(null);
     sessionStorage.removeItem('user');
     localStorage.removeItem('user'); // Also clear any old localStorage data
-  };
+  }, []);
+
+  // Setup axios interceptor to auto-logout on 401 responses
+  useEffect(() => {
+    setupAxiosInterceptor(logout);
+  }, [logout]);
 
   const updateUser = (updatedFields) => {
     setUser(prev => prev ? { ...prev, ...updatedFields } : prev);
