@@ -629,7 +629,7 @@ function SuperAdminDashboard() {
             <button 
               className="btn-action outline"
               style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff' }}
-              onClick={() => { if(window.confirm('Logout?')) { logout(); navigate('/login'); } }}
+              onClick={() => { if(window.confirm('Logout?')) { logout(); navigate('/'); } }}
             >
               <i className="bi bi-box-arrow-right me-2"></i>Logout
             </button>

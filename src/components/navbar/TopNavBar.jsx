@@ -125,7 +125,7 @@ function TopNavBar({ showLinks = true }) {
                   onClick={() => {
                     if (window.confirm('Are you sure you want to logout?')) {
                       logout();
-                      navigate('/login');
+                      navigate('/');
                     }
                   }}
                 >
