@@ -1061,8 +1061,8 @@ function SuperAdminDashboard() {
                                     <i className="bi bi-person-x"></i>
                                   </div>
                                   <div className="user-details">
-                                    <div className="user-name">{u.full_name || 'Deleted User'}</div>
-                                    <div className="user-email" style={{color: '#94a3b8'}}>Account deleted</div>
+                                    <div className="user-name">Deleted User</div>
+                                    <div className="user-email" style={{color: '#94a3b8'}}>{u.university ? `${u.university}${u.degree ? ` - ${u.degree}` : ''}` : 'Account deleted'}</div>
                                   </div>
                                 </div>
                               </td>
