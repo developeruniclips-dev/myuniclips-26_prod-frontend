@@ -6,13 +6,13 @@ import { useEffect } from 'react';
  */
 const SEO = ({
   title = 'UniClips',
-  description = 'Learn from top university scholars. Access premium educational content, video courses, and expert knowledge from verified academic professionals.',
-  keywords = 'online courses, university education, academic videos, scholar courses, learn online, educational platform, video learning, UniClips',
-  image = 'https://myuniclips.com/og-image.png',
+  description = 'UniClips (myuniclips.com) - Learn from top university scholars. Access premium educational content, video courses, and expert knowledge from verified academic professionals.',
+  keywords = 'uniclips, myuniclips, my uni clips, online courses, university education, academic videos, scholar courses, learn online, educational platform, video learning',
+  image = 'https://myuniclips.com/logo512.png',
   url = 'https://myuniclips.com',
   type = 'website'
 }) => {
-  const fullTitle = title === 'UniClips' ? title : `${title} | UniClips`;
+  const fullTitle = title === 'UniClips' ? 'UniClips - Learn from University Scholars | myuniclips.com' : `${title} | UniClips`;
 
   useEffect(() => {
     // Update title
@@ -73,18 +73,18 @@ export default SEO;
 // Pre-configured SEO for common pages
 export const HomeSEO = () => (
   <SEO
-    title="UniClips - Learn from University Scholars"
-    description="Access premium educational video courses from verified university scholars. Learn directly from academic experts and advance your knowledge with UniClips."
-    keywords="online courses, university scholars, academic education, video courses, learn online, educational platform, expert teaching, UniClips"
-    url="https://myuniclips.com"
+    title="UniClips"
+    description="UniClips (myuniclips.com) - Access premium educational video courses from verified university scholars. Learn directly from academic experts and advance your knowledge with UniClips."
+    keywords="uniclips, myuniclips, my uni clips, uni clips, online courses, university scholars, academic education, video courses, learn online, educational platform, expert teaching, Finland education"
+    url="https://myuniclips.com/"
   />
 );
 
 export const ScholarsSEO = () => (
   <SEO
     title="Browse Scholars"
-    description="Discover expert university scholars on UniClips. Browse profiles, explore courses, and learn from verified academic professionals in various fields."
-    keywords="university scholars, academic experts, course instructors, education professionals, online teachers"
+    description="Discover expert university scholars on UniClips (myuniclips.com). Browse profiles, explore courses, and learn from verified academic professionals in various fields."
+    keywords="uniclips scholars, myuniclips, university scholars, academic experts, course instructors, education professionals, online teachers"
     url="https://myuniclips.com/scholar"
   />
 );
@@ -92,8 +92,8 @@ export const ScholarsSEO = () => (
 export const CoursesSEO = () => (
   <SEO
     title="Browse Courses"
-    description="Explore our collection of premium video courses created by university scholars. Find courses in science, technology, arts, humanities, and more."
-    keywords="video courses, online learning, academic courses, university courses, educational videos"
+    description="Explore premium video courses on UniClips (myuniclips.com) created by university scholars. Find courses in science, technology, arts, humanities, and more."
+    keywords="uniclips courses, myuniclips, video courses, online learning, academic courses, university courses, educational videos"
     url="https://myuniclips.com/teacher"
   />
 );
@@ -101,8 +101,8 @@ export const CoursesSEO = () => (
 export const AboutSEO = () => (
   <SEO
     title="About Us"
-    description="Learn about UniClips - the platform connecting students with university scholars. Our mission is to make quality academic education accessible to everyone."
-    keywords="about UniClips, educational platform, university education, academic mission, online learning company"
+    description="Learn about UniClips (myuniclips.com) - the platform connecting students with university scholars. Our mission is to make quality academic education accessible to everyone."
+    keywords="about uniclips, about myuniclips, educational platform, university education, academic mission, online learning company"
     url="https://myuniclips.com/aboutUs"
   />
 );
@@ -110,8 +110,8 @@ export const AboutSEO = () => (
 export const LoginSEO = () => (
   <SEO
     title="Login"
-    description="Sign in to your UniClips account to access your courses, track your progress, and continue learning from university scholars."
-    keywords="login, sign in, UniClips account, student portal"
+    description="Sign in to your UniClips account on myuniclips.com to access your courses, track your progress, and continue learning from university scholars."
+    keywords="uniclips login, myuniclips sign in, UniClips account, student portal"
     url="https://myuniclips.com/login"
   />
 );
@@ -119,8 +119,8 @@ export const LoginSEO = () => (
 export const LibrarySEO = () => (
   <SEO
     title="My Library"
-    description="Access your purchased courses and continue learning. Your personal library of educational content from university scholars."
-    keywords="my courses, course library, purchased courses, learning progress"
+    description="Access your purchased courses on UniClips and continue learning. Your personal library of educational content from university scholars on myuniclips.com."
+    keywords="uniclips library, myuniclips courses, my courses, course library, purchased courses, learning progress"
     url="https://myuniclips.com/my-library"
   />
 );

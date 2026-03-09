@@ -1,21 +1,32 @@
-# UniClips Robots.txt
+# UniClips (myuniclips.com) Robots.txt
 # https://myuniclips.com
 
 User-agent: *
 Allow: /
+Allow: /scholar
+Allow: /teacher
+Allow: /aboutUs
+Allow: /privacy-policy
 
-# Allow all crawlers
+# Allow all major crawlers
 User-agent: Googlebot
 Allow: /
 
 User-agent: Bingbot
 Allow: /
 
+User-agent: Yandex
+Allow: /
+
 # Disallow private/auth areas
 Disallow: /dashboard
 Disallow: /scholar-dashboard
 Disallow: /admin-dashboard
+Disallow: /super-admin
+Disallow: /my-library
 Disallow: /api/
+Disallow: /forgot-password
+Disallow: /reset-password
 
 # Sitemap location
 Sitemap: https://myuniclips.com/sitemap.xml
