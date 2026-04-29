@@ -83,7 +83,7 @@ function PrivacyPolicy() {
                   <li><strong>Portability:</strong> Request transfer of your data</li>
                   <li><strong>Object:</strong> Object to processing of your personal data</li>
                 </ul>
-                <p>To exercise these rights, contact us at <a href="mailto:support@uniclips.com">support@uniclips.com</a></p>
+                <p>To exercise these rights, contact us at <a href="mailto:support@myuniclips.com">support@myuniclips.com</a></p>
               </section>
 
               <section className="mb-5">
@@ -116,7 +116,7 @@ function PrivacyPolicy() {
                 <h4 className="fw-bold mb-3">10. Contact Us</h4>
                 <p>If you have questions about this Privacy Policy, please contact us at:</p>
                 <ul className="list-unstyled">
-                  <li><strong>Email:</strong> <a href="mailto:support@uniclips.com">support@uniclips.com</a></li>
+                  <li><strong>Email:</strong> <a href="mailto:support@myuniclips.com">support@myuniclips.com</a></li>
                   <li><strong>Phone:</strong> <a href="tel:+358451723342">+358 45 1723342</a></li>
                   <li><strong>Address:</strong> Kaartokatu 2, 11100 Riihimäki, Finland</li>
                 </ul>

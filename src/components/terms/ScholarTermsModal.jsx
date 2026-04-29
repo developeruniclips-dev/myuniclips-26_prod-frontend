@@ -46,7 +46,7 @@ Scholars are responsible for the accuracy and legality of their content. Uniclip
 These terms may be updated periodically. Continued use of the platform constitutes acceptance of modified terms.
 
 10. CONTACT
-For questions about these terms, contact: support@uniclips.com
+For questions about these terms, contact: support@myuniclips.com
 
 Last updated: January 2026
 `;

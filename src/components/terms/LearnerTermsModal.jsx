@@ -50,7 +50,7 @@ We may suspend or terminate accounts that violate these terms.
 We may update these terms periodically. Continued use constitutes acceptance.
 
 11. CONTACT
-Questions? Email us at: support@uniclips.com
+Questions? Email us at: support@myuniclips.com
 
 Last updated: January 2026
 `;

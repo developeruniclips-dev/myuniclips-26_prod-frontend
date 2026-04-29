@@ -77,9 +77,9 @@ function ForgotPassword() {
                                         {error}
                                         <hr />
                                         <p className="mb-2">Please contact tech support to reset your password:</p>
-                                        <a href="mailto:support@uniclips.com" className="btn btn-outline-primary">
+                                        <a href="mailto:support@myuniclips.com" className="btn btn-outline-primary">
                                             <i className="bi bi-envelope me-2"></i>
-                                            support@uniclips.com
+                                            support@myuniclips.com
                                         </a>
                                     </Alert>
                                 ) : (
