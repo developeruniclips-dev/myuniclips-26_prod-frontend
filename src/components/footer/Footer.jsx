@@ -65,7 +65,7 @@ function Footer() {
             <ul className="list-unstyled text-white-50">
               <li className="mb-2">
                 <i className="bi bi-envelope me-2"></i>
-                <a href="mailto:support@uniclips.com" className="text-white-50 text-decoration-none">support@uniclips.com</a>
+                  <a href="mailto:support@myuniclips.com" className="text-white-50 text-decoration-none">support@myuniclips.com</a>
               </li>
               <li className="mb-2">
                 <i className="bi bi-telephone me-2"></i>
