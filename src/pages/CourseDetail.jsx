@@ -164,6 +164,7 @@ function CourseDetail() {
   const [paymentMessage, setPaymentMessage] = useState(null);
   const iframeRef = useRef(null);
   const playerRef = useRef(null);
+  const videoPlayerRef = useRef(null); // Reference to video player card for scrolling
   const progressIntervalRef = useRef(null);
   const hasSeekRef = useRef(false); // Track if we've already seeked to saved position
 
@@ -491,6 +492,12 @@ function CourseDetail() {
     if (canWatchVideo(video, index)) {
       // Play video in-page instead of navigating
       setPlayingVideo(video);
+      // Scroll to video player after a short delay to ensure the player is rendered
+      setTimeout(() => {
+        if (videoPlayerRef.current) {
+          videoPlayerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
     } else if (!user) {
       navigate('/login');
     } else {
@@ -746,7 +753,7 @@ function CourseDetail() {
           <Col lg={8}>
             {/* In-Page Video Player */}
             {playingVideo && (
-              <Card className="border-0 shadow-sm mb-4">
+              <Card className="border-0 shadow-sm mb-4" ref={videoPlayerRef}>
                 <Card.Header className="bg-primary text-white py-3 d-flex justify-content-between align-items-center">
                   <div>
                     <i className="bi bi-play-circle-fill me-2"></i>

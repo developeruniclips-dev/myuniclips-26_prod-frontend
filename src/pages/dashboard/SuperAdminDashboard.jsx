@@ -314,7 +314,7 @@ function SuperAdminDashboard() {
         { headers: { Authorization: `Bearer ${user.token}` } }
       );
       alert("Course approved!");
-      fetchCourseApplications();
+      window.location.reload();
     } catch (err) {
       alert(err.response?.data?.message || "Failed to approve course");
     } finally {
@@ -332,9 +332,26 @@ function SuperAdminDashboard() {
         { headers: { Authorization: `Bearer ${user.token}` } }
       );
       alert("Course rejected");
-      fetchCourseApplications();
+      window.location.reload();
     } catch (err) {
       alert(err.response?.data?.message || "Failed to reject course");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeleteScholarCourse = async (scholarSubjectId, courseName) => {
+    if (!window.confirm(`Delete "${courseName}" and all its videos? This action cannot be undone.`)) return;
+    setActionLoading(true);
+    try {
+      await axios.delete(
+        `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/scholar-subjects/${scholarSubjectId}`,
+        { headers: { Authorization: `Bearer ${user.token}` } }
+      );
+      alert("Course deleted successfully!");
+      window.location.reload();
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to delete course");
     } finally {
       setActionLoading(false);
     }
@@ -834,13 +851,23 @@ function SuperAdminDashboard() {
                                   </button>
                                 </div>
                               ) : app.video_count > 0 ? (
-                                <span className="status-badge success">
-                                  <i className="bi bi-camera-video me-1"></i>{app.approved_video_count}/{app.video_count} Videos
-                                </span>
+                                <div className="action-buttons">
+                                  <span className="status-badge success">
+                                    <i className="bi bi-camera-video me-1"></i>{app.approved_video_count}/{app.video_count} Videos
+                                  </span>
+                                  <button className="btn-action delete" onClick={() => handleDeleteScholarCourse(app.id, app.subject_name)} disabled={actionLoading}>
+                                    <i className="bi bi-trash me-1"></i> Delete
+                                  </button>
+                                </div>
                               ) : (
-                                <span className="status-badge warning">
-                                  <i className="bi bi-upload me-1"></i>No Videos Yet
-                                </span>
+                                <div className="action-buttons">
+                                  <span className="status-badge warning">
+                                    <i className="bi bi-upload me-1"></i>No Videos Yet
+                                  </span>
+                                  <button className="btn-action delete" onClick={() => handleDeleteScholarCourse(app.id, app.subject_name)} disabled={actionLoading}>
+                                    <i className="bi bi-trash me-1"></i> Delete
+                                  </button>
+                                </div>
                               )}
                             </td>
                           </tr>

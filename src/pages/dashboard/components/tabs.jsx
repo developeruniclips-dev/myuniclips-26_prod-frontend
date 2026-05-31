@@ -622,23 +622,22 @@ function ScholarTabs() {
                 <Table responsive hover className="mb-0 align-middle">
                   <thead className="bg-light">
                     <tr>
-                      <th style={{width: '30%'}}>Subject Name</th>
+                      <th style={{width: '40%'}}>Subject Name</th>
                       <th style={{width: '25%'}}>STATUS</th>
                       <th style={{width: '10%'}} className="text-center">SALES</th>
-                      <th style={{width: '20%'}}>ACTION</th>
-                      <th style={{width: '15%'}} className="text-center">DELETE</th>
+                      <th style={{width: '25%'}}>ACTION</th>
                     </tr>
                   </thead>
                   <tbody>
                     {loading ? (
                       <tr>
-                        <td colSpan="5" className="text-center py-4">
+                        <td colSpan="4" className="text-center py-4">
                           <div className="spinner-border text-primary" role="status"></div>
                         </td>
                       </tr>
                     ) : coursesList.length === 0 ? (
                       <tr>
-                        <td colSpan="5" className="text-center py-4 text-muted">
+                        <td colSpan="4" className="text-center py-4 text-muted">
                           <i className="bi bi-inbox fs-1 d-block mb-2"></i>
                           No courses yet. Apply to teach a subject to get started!
                         </td>
@@ -678,21 +677,12 @@ function ScholarTabs() {
                               <span className="badge bg-light text-dark fs-6">{course.sales}</span>
                             </td>
                             <td>{getActionButton(course)}</td>
-                            <td className="text-center">
-                              <Button 
-                                variant="outline-danger" 
-                                size="sm"
-                                onClick={() => handleDeleteCourse(course.subject_id, course.title)}
-                              >
-                                <i className="bi bi-trash me-1"></i>
-                                Delete
-                              </Button>
-                            </td>
+
                           </tr>
                           {/* Expanded Video List Row */}
                           {expandedCourse === course.subject_id && course.videos && course.videos.length > 0 && (
                             <tr key={`${course.id}-videos`}>
-                              <td colSpan="5" className="bg-light p-0">
+                              <td colSpan="4" className="bg-light p-0">
                                 <div className="p-3">
                                   <h6 className="fw-bold mb-3">
                                     <i className="bi bi-collection-play me-2"></i>
