@@ -94,7 +94,7 @@ function TopNavBar({ showLinks = true }) {
               {user && !location.pathname.includes("dashboard") && !location.pathname.includes("upload-video") && !location.pathname.includes("create-course") && (
                 <Nav.Link 
                   as={Link} 
-                  to={user?.roles?.includes("SuperAdmin") ? "/superadmin-dashboard" : user?.roles?.includes("Admin") ? "/admin-dashboard" : user?.roles?.includes("Scholar") ? "/scholar-dashboard" : "/dashboard"}
+                  to={user?.roles?.includes("SuperAdmin") ? "/superadmin-dashboard" : user?.roles?.includes("Admin") ? "/admin-dashboard" : "/dashboard"}
                   className="px-3 fw-semibold text-white"
                   onClick={handleNavClick}
                 >
@@ -141,4 +141,3 @@ function TopNavBar({ showLinks = true }) {
 }
 
 export default TopNavBar;
-

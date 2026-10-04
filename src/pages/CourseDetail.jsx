@@ -7,6 +7,8 @@ import { useAuth } from "../context/temp";
 import { CourseDetailSEO } from "../components/SEO";
 import LearnerTermsModal from "../components/terms/LearnerTermsModal";
 
+import { paymentStatus } from "../utils/paymentStatus.mjs";
+
 // Default bundle price (used as fallback)
 const DEFAULT_BUNDLE_PRICE = 6.00;
 
@@ -174,21 +176,24 @@ function CourseDetail() {
     const sessionId = searchParams.get('session_id');
     
     if (payment === 'success' && sessionId && user) {
-      // Confirm the purchase with our backend
+      setPaymentMessage({ type: 'info', text: 'Confirming payment...' });
+      // Backend retrieves Stripe evidence and verifies the owned order.
       const confirmPurchase = async () => {
         try {
-          await axios.post(
+          const { data } = await axios.post(
             `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/purchases/checkout-success`,
             { sessionId },
             { headers: { Authorization: `Bearer ${user.token}` } }
           );
-          setHasPurchasedBundle(true);
-          setPaymentMessage({ type: 'success', text: '🎉 Payment successful! You now have access to all videos in this course.' });
-          // Clear URL params
-          navigate(`/course/${subjectId}/${urlScholarId}`, { replace: true });
+          const status = paymentStatus(data, subjectId, urlScholarId);
+          setPaymentMessage(status);
+          if (status.confirmed) {
+            setHasPurchasedBundle(true);
+            navigate(`/course/${subjectId}/${urlScholarId}`, { replace: true });
+          }
         } catch (err) {
-          console.error('Error confirming purchase:', err);
-          setPaymentMessage({ type: 'danger', text: 'Payment was received but there was an issue. Please contact support.' });
+
+          setPaymentMessage({ type: 'danger', text: 'Unable to verify payment. Refresh to retry or contact support before paying again.' });
         }
       };
       confirmPurchase();

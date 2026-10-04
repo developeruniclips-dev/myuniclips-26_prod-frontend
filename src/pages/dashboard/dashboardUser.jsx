@@ -1,652 +1,160 @@
-import React, { useEffect, useState } from "react";
-import {
-  Container,
-  Row,
-  Col,
-  Card,
-  Button,
-  Form,
-  Tabs,
-  Tab,
-  Badge,
-  ProgressBar
-} from "react-bootstrap";
-import axios from "axios";
-import { UPLOADS_BASE_URL } from "../../api/axios";
-import { useAuth } from "../../context/temp";
-import { useNavigate } from "react-router-dom";
-import "./dashboard.css";
+import React, { useEffect, useState } from 'react';
+import { Container, Alert, Tabs, Tab } from 'react-bootstrap';
+import { Link, useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { useAuth } from '../../context/temp';
+import LearnerAvatar from './components/LearnerAvatar';
+import LearningCourseCard from './components/LearningCourseCard';
+import { buildCatalog, buildPurchased, courseKey, recommendCourses, selectNewCourses, withProgress } from './learnerData.mjs';
+import './learnerDashboard.css';
+import { classificationFields, matchesProgramme, matchesCourseSearch } from '../../utils/courseClassification.mjs';
 
-function Dashboard() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-  const [purchasedCourses, setPurchasedCourses] = useState([]);
-  const [filteredCourses, setFilteredCourses] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [userProfile, setUserProfile] = useState(null);
-  const [library, setLibrary] = useState([]);
-  const [filteredLibrary, setFilteredLibrary] = useState([]);
-  const [libraryLoading, setLibraryLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("purchased");
-  const [searchExpanded, setSearchExpanded] = useState(false);
+const API = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const requests = {
+  profile: '/users/profile', catalog: '/videos/all-videos',
+  bundles: '/purchases/subject/my-purchases', legacy: '/purchases/my-purchases',
+  saved: '/library/my-library', progress: '/library/learning-progress',
+  universities: '/locations/universities', scholar: '/scholar-profile/status'
+};
 
-  // Fetch user profile
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const res = await axios.get(
-          `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/users/profile`,
-          {
-            headers: { Authorization: `Bearer ${user.token}` }
-          }
-        );
-        setUserProfile(res.data);
-      } catch (err) {
-        console.error("Error fetching profile:", err);
-      }
-    };
-
-    if (user) fetchProfile();
-  }, [user]);
-
-  // Fetch purchases on load
-  useEffect(() => {
-    const fetchPurchases = async () => {
-      try {
-        const res = await axios.get(
-          `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/purchases/my-purchases`,
-          {
-            headers: { Authorization: `Bearer ${user.token}` }
-          }
-        );
-
-        const purchases = res.data.purchases || [];
-        setPurchasedCourses(purchases);
-        setFilteredCourses(purchases);
-
-        setLoading(false);
-      } catch (err) {
-        console.error("Error fetching purchases:", err);
-        setLoading(false);
-      }
-    };
-
-    if (user) fetchPurchases();
-  }, [user]);
-
-  // Fetch library (saved courses)
-  useEffect(() => {
-    const fetchLibrary = async () => {
-      try {
-        const res = await axios.get(
-          `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/library/my-library`,
-          { headers: { Authorization: `Bearer ${user.token}` } }
-        );
-        setLibrary(res.data.library || []);
-        setFilteredLibrary(res.data.library || []);
-      } catch (err) {
-        console.error('Error fetching library:', err);
-      } finally {
-        setLibraryLoading(false);
-      }
-    };
-
-    if (user) fetchLibrary();
-  }, [user]);
-
-  // Handle remove from library
-  const handleRemoveFromLibrary = async (course) => {
-    try {
-      await axios.post(
-        `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/library/remove`,
-        { subjectId: course.subject_id, scholarId: course.scholar_id },
-        { headers: { Authorization: `Bearer ${user.token}` } }
-      );
-      setLibrary(prev => prev.filter(c => 
-        !(c.subject_id === course.subject_id && c.scholar_id === course.scholar_id)
-      ));
-      setFilteredLibrary(prev => prev.filter(c => 
-        !(c.subject_id === course.subject_id && c.scholar_id === course.scholar_id)
-      ));
-    } catch (err) {
-      console.error('Error removing from library:', err);
-    }
-  };
-
-  // Search handler
-  useEffect(() => {
-    const query = search.toLowerCase();
-
-    const filtered = purchasedCourses.filter((course) =>
-      course.title.toLowerCase().includes(query)
-    );
-    setFilteredCourses(filtered);
-
-    // Also filter library
-    const filteredLib = library.filter((course) =>
-      course.subject_name?.toLowerCase().includes(query) ||
-      course.degree_programmes?.toLowerCase().includes(query)
-    );
-    setFilteredLibrary(filteredLib);
-  }, [search, purchasedCourses, library]);
-
-  return (
-    <div className="bg-light min-vh-100">
-      <Container className="py-5">
-        {/* Welcome Header */}
-        <div className="row mb-4">
-          <div className="col-lg-8">
-            <h2 className="fw-bold mb-1">Welcome back, {user?.fname || user?.firstname}! 👋</h2>
-            <p className="text-muted">Continue learning and growing your skills</p>
-          </div>
-          
-          {/* Profile Card */}
-          <div className="col-lg-4">
-            <Card className="border-0 shadow-sm">
-              <Card.Body className="text-center py-4">
-                {userProfile?.profile_image_url ? (
-                  <img 
-                    src={`${UPLOADS_BASE_URL}/${userProfile.profile_image_url}`}
-                    alt="Profile"
-                    className="rounded-circle mb-3"
-                    style={{ width: '80px', height: '80px', objectFit: 'cover', border: '3px solid #6366f1' }}
-                  />
-                ) : (
-                  <div className="rounded-circle bg-primary bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style={{ width: '80px', height: '80px' }}>
-                    <i className="bi bi-person-circle fs-1 text-primary"></i>
-                  </div>
-                )}
-                <h6 className="fw-bold mb-1">{user?.fname || user?.firstname} {user?.lname || user?.lastname}</h6>
-                <p className="text-muted small mb-3">Email: {user?.email}</p>
-                
-                {/* Bio */}
-                {userProfile?.bio && (
-                  <div className="text-start mb-3 p-2 bg-light rounded">
-                    <small className="text-muted fw-semibold">Bio</small>
-                    <p className="small mb-0">{userProfile.bio}</p>
-                  </div>
-                )}
-                
-                {/* Profile Details */}
-                {(userProfile?.favorite_subject || userProfile?.favorite_food || userProfile?.hobbies) && (
-                  <div className="text-start mb-3">
-                    {userProfile?.favorite_subject && (
-                      <div className="mb-2">
-                        <i className="bi bi-book text-primary me-2"></i>
-                        <small><strong>Favorite Subject:</strong> {userProfile.favorite_subject}</small>
-                      </div>
-                    )}
-                    {userProfile?.favorite_food && (
-                      <div className="mb-2">
-                        <i className="bi bi-emoji-smile text-warning me-2"></i>
-                        <small><strong>Favorite Food:</strong> {userProfile.favorite_food}</small>
-                      </div>
-                    )}
-                    {userProfile?.hobbies && (
-                      <div className="mb-2">
-                        <i className="bi bi-heart text-danger me-2"></i>
-                        <small><strong>Hobbies:</strong> {userProfile.hobbies}</small>
-                      </div>
-                    )}
-                  </div>
-                )}
-                
-                <div className="d-flex flex-column gap-2">
-                  {/* Scholar Dashboard Button - only show if user is a scholar */}
-                  {user?.roles?.includes('Scholar') && (
-                    <Button 
-                      variant="success" 
-                      size="sm" 
-                      className="w-100"
-                      onClick={() => navigate('/scholar-dashboard')}
-                    >
-                      <i className="bi bi-mortarboard me-2"></i>
-                      Go to Scholar Dashboard
-                    </Button>
-                  )}
-                  
-                  <div className="d-flex gap-2">
-                    <Button 
-                      variant="primary" 
-                      size="sm" 
-                      className="px-3 flex-grow-1"
-                      onClick={() => window.location.href = '/edit-profile'}
-                    >
-                      Edit Profile
-                    </Button>
-                    <Button 
-                      variant="outline-secondary" 
-                      size="sm" 
-                      className="px-3 flex-grow-1"
-                      onClick={() => {
-                        if (window.confirm('Are you sure you want to logout?')) {
-                          logout();
-                          navigate('/');
-                        }
-                      }}
-                    >
-                      Logout
-                    </Button>
-                  </div>
-                </div>
-              </Card.Body>
-            </Card>
-          </div>
-        </div>
-
-        {/* Stats Cards */}
-        <Row className="mb-4">
-          <Col md={3}>
-            <Card className="border-0 shadow-sm h-100">
-              <Card.Body>
-                <div className="d-flex align-items-center">
-                  <div className="rounded-3 p-3 bg-primary bg-opacity-10 me-3">
-                    <i className="bi bi-book fs-3 text-primary"></i>
-                  </div>
-                  <div>
-                    <p className="text-muted mb-0 small">Courses Purchased</p>
-                    <h4 className="mb-0 fw-bold">{purchasedCourses.length}</h4>
-                  </div>
-                </div>
-              </Card.Body>
-            </Card>
-          </Col>
-          <Col md={3}>
-            <Card className="border-0 shadow-sm h-100">
-              <Card.Body>
-                <div className="d-flex align-items-center">
-                  <div className="rounded-3 p-3 bg-info bg-opacity-10 me-3">
-                    <i className="bi bi-bookmark fs-3 text-info"></i>
-                  </div>
-                  <div>
-                    <p className="text-muted mb-0 small">Saved Courses</p>
-                    <h4 className="mb-0 fw-bold">{library.length}</h4>
-                  </div>
-                </div>
-              </Card.Body>
-            </Card>
-          </Col>
-          <Col md={3}>
-            <Card className="border-0 shadow-sm h-100">
-              <Card.Body>
-                <div className="d-flex align-items-center">
-                  <div className="rounded-3 p-3 bg-success bg-opacity-10 me-3">
-                    <i className="bi bi-check-circle fs-3 text-success"></i>
-                  </div>
-                  <div>
-                    <p className="text-muted mb-0 small">Completed</p>
-                    <h4 className="mb-0 fw-bold">0</h4>
-                  </div>
-                </div>
-              </Card.Body>
-            </Card>
-          </Col>
-          <Col md={3}>
-            <Card className="border-0 shadow-sm h-100">
-              <Card.Body>
-                <div className="d-flex align-items-center">
-                  <div className="rounded-3 p-3 bg-warning bg-opacity-10 me-3">
-                    <i className="bi bi-clock-history fs-3 text-warning"></i>
-                  </div>
-                  <div>
-                    <p className="text-muted mb-0 small">In Progress</p>
-                    <h4 className="mb-0 fw-bold">{purchasedCourses.length}</h4>
-                  </div>
-                </div>
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
-
-        {/* My Courses Section with Tabs */}
-        <Card className="border-0 shadow-sm mb-4">
-          <Card.Body>
-            <div className="d-flex justify-content-between align-items-center mb-3">
-              <div className="d-flex align-items-center gap-3">
-                <h5 className="fw-bold mb-0">My Courses</h5>
-                {/* Search Icon/Input */}
-                <div className="d-flex align-items-center">
-                  {searchExpanded ? (
-                    <div className="d-flex align-items-center" style={{ animation: 'slideIn 0.3s ease' }}>
-                      <Form.Control
-                        type="text"
-                        placeholder="Search courses..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        style={{ width: '200px', borderRadius: '20px', fontSize: '0.9rem' }}
-                        autoFocus
-                      />
-                      <Button
-                        variant="link"
-                        className="p-1 ms-1"
-                        onClick={() => {
-                          setSearchExpanded(false);
-                          setSearch("");
-                        }}
-                      >
-                        <i className="bi bi-x-lg text-muted"></i>
-                      </Button>
-                    </div>
-                  ) : (
-                    <Button
-                      variant="link"
-                      className="p-1 text-muted"
-                      onClick={() => setSearchExpanded(true)}
-                      title="Search courses"
-                    >
-                      <i className="bi bi-search" style={{ fontSize: '1.1rem' }}></i>
-                    </Button>
-                  )}
-                </div>
-              </div>
-              <Button 
-                variant="outline-primary" 
-                size="sm"
-                onClick={() => navigate('/all-videos')}
-              >
-                <i className="bi bi-plus-circle me-2"></i>Browse More Courses
-              </Button>
-            </div>
-
-            <Tabs
-              activeKey={activeTab}
-              onSelect={(k) => setActiveTab(k)}
-              className="mb-4"
-            >
-              {/* Purchased Courses Tab */}
-              <Tab 
-                eventKey="purchased" 
-                title={
-                  <span>
-                    <i className="bi bi-bag-check me-2"></i>
-                    Purchased
-                    {purchasedCourses.length > 0 && (
-                      <Badge bg="primary" className="ms-2">{purchasedCourses.length}</Badge>
-                    )}
-                  </span>
-                }
-              >
-                <div className="pt-3">
-                  {loading ? (
-                    <div className="text-center py-5">
-                      <div className="spinner-border text-primary" role="status">
-                        <span className="visually-hidden">Loading...</span>
-                      </div>
-                      <p className="mt-3 text-muted">Loading your courses...</p>
-                    </div>
-                  ) : filteredCourses.length === 0 ? (
-                    <div className="text-center py-5">
-                      <div className="mb-4">
-                        <i className="bi bi-collection-play" style={{ fontSize: '4rem', color: '#6366f1' }}></i>
-                      </div>
-                      <h5 className="fw-bold mb-2">No Courses Yet</h5>
-                      <p className="text-muted mb-4">
-                        {search ? "No courses match your search." : "Start your learning journey by browsing our course library!"}
-                      </p>
-                      <Button 
-                        variant="primary" 
-                        size="lg"
-                        onClick={() => navigate('/all-videos')}
-                      >
-                        Explore Courses
-                      </Button>
-                    </div>
-                  ) : (
-                    <Row>
-                      {filteredCourses.map((course, idx) => (
-                        <Col md={6} lg={4} className="mb-4" key={idx}>
-                          <Card 
-                            className="h-100 border-0 shadow-sm" 
-                            style={{ 
-                              transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-                              cursor: 'pointer'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.transform = 'translateY(-5px)';
-                              e.currentTarget.style.boxShadow = '0 8px 16px rgba(0,0,0,0.1)';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.transform = 'translateY(0)';
-                              e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-                            }}
-                          >
-                            {/* Video Preview */}
-                            <div style={{ position: 'relative', overflow: 'hidden', borderRadius: '8px 8px 0 0' }}>
-                              <video
-                                src={course.video_url}
-                                className="w-100"
-                                style={{ height: "200px", objectFit: "cover" }}
-                              />
-                              <div 
-                                style={{ 
-                                  position: 'absolute', 
-                                  top: '50%', 
-                                  left: '50%', 
-                                  transform: 'translate(-50%, -50%)',
-                                  background: 'rgba(99, 102, 241, 0.9)',
-                                  borderRadius: '50%',
-                                  width: '60px',
-                                  height: '60px',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  cursor: 'pointer'
-                                }}
-                              >
-                                <i className="bi bi-play-fill text-white" style={{ fontSize: '2rem' }}></i>
-                              </div>
-                            </div>
-
-                            <Card.Body>
-                              <Card.Title className="fw-bold mb-2" style={{ fontSize: '1.1rem' }}>
-                                {course.title}
-                              </Card.Title>
-
-                              <div className="d-flex justify-content-between align-items-center mb-3">
-                                <span className="badge bg-primary bg-opacity-10 text-primary">
-                                  €{course.amount} {course.currency}
-                                </span>
-                                <small className="text-muted">
-                                  <i className="bi bi-calendar3 me-1"></i>
-                                  {new Date(course.created_at).toLocaleDateString()}
-                                </small>
-                              </div>
-
-                              <Button 
-                                variant="primary" 
-                                className="w-100"
-                                onClick={() => navigate(`/watch/${course.video_id}`)}
-                              >
-                                <i className="bi bi-play-circle me-2"></i>Continue Learning
-                              </Button>
-                            </Card.Body>
-                          </Card>
-                        </Col>
-                      ))}
-                    </Row>
-                  )}
-                </div>
-              </Tab>
-
-              {/* Saved Courses (Library) Tab */}
-              <Tab 
-                eventKey="saved" 
-                title={
-                  <span>
-                    <i className="bi bi-bookmark me-2"></i>
-                    Saved
-                    {library.length > 0 && (
-                      <Badge bg="secondary" className="ms-2">{library.length}</Badge>
-                    )}
-                  </span>
-                }
-              >
-                <div className="pt-3">
-                  {libraryLoading ? (
-                    <div className="text-center py-5">
-                      <div className="spinner-border text-primary" role="status">
-                        <span className="visually-hidden">Loading...</span>
-                      </div>
-                      <p className="mt-3 text-muted">Loading your saved courses...</p>
-                    </div>
-                  ) : filteredLibrary.length === 0 ? (
-                    <div className="text-center py-5">
-                      <div className="mb-4">
-                        <i className="bi bi-bookmark" style={{ fontSize: '4rem', color: '#6366f1' }}></i>
-                      </div>
-                      <h5 className="fw-bold mb-2">No Saved Courses</h5>
-                      <p className="text-muted mb-4">
-                        {search ? "No saved courses match your search." : "Save courses to watch later by clicking the bookmark icon on any course."}
-                      </p>
-                      <Button 
-                        variant="primary" 
-                        size="lg"
-                        onClick={() => navigate('/all-videos')}
-                      >
-                        Browse Courses
-                      </Button>
-                    </div>
-                  ) : (
-                    <Row>
-                      {filteredLibrary.map((course) => (
-                        <Col lg={4} md={6} className="mb-4" key={`${course.subject_id}-${course.scholar_id}`}>
-                          <Card className="h-100 shadow-sm" style={{ overflow: 'hidden' }}>
-                            {/* Thumbnail */}
-                            <div 
-                              style={{ position: 'relative', cursor: 'pointer' }}
-                              onClick={() => navigate(`/course/${course.subject_id}/${course.scholar_id}`)}
-                            >
-                              <Card.Img
-                                variant="top"
-                                src={course.thumbnailUrl}
-                                alt={course.subject_name}
-                                style={{ 
-                                  aspectRatio: '16/9', 
-                                  objectFit: 'cover',
-                                  backgroundColor: '#e9ecef'
-                                }}
-                                onError={(e) => {
-                                  e.target.onerror = null;
-                                  e.target.src = 'https://via.placeholder.com/640x360?text=Course';
-                                }}
-                              />
-                              {/* Progress overlay */}
-                              {course.progressPercent > 0 && (
-                                <div 
-                                  className="position-absolute bottom-0 start-0 end-0"
-                                  style={{ background: 'rgba(0,0,0,0.7)', padding: '8px 12px' }}
-                                >
-                                  <div className="d-flex justify-content-between align-items-center text-white mb-1">
-                                    <small>{course.progressPercent}% Complete</small>
-                                    <small>{course.watchedVideos}/{course.totalVideos} videos</small>
-                                  </div>
-                                  <ProgressBar 
-                                    now={course.progressPercent} 
-                                    variant="success" 
-                                    style={{ height: '4px' }}
-                                  />
-                                </div>
-                              )}
-                              {/* Play button overlay */}
-                              <div 
-                                className="position-absolute top-50 start-50 translate-middle"
-                                style={{
-                                  background: 'rgba(255,255,255,0.9)',
-                                  borderRadius: '50%',
-                                  width: '50px',
-                                  height: '50px',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  opacity: 0.9
-                                }}
-                              >
-                                <i className="bi bi-play-fill text-primary" style={{ fontSize: '1.5rem' }}></i>
-                              </div>
-                            </div>
-
-                            <Card.Body className="d-flex flex-column">
-                              {/* Subject Name */}
-                              <Card.Title 
-                                className="fw-bold mb-2" 
-                                style={{ fontSize: '1rem', cursor: 'pointer' }}
-                                onClick={() => navigate(`/course/${course.subject_id}/${course.scholar_id}`)}
-                              >
-                                {course.subject_name}
-                              </Card.Title>
-
-                              {/* Degree Programme */}
-                              <div className="mb-2">
-                                <small className="text-muted">
-                                  <i className="bi bi-mortarboard me-1"></i>
-                                  {course.degree_programmes || 'General Studies'}
-                                </small>
-                              </div>
-
-                              {/* Scholar Info */}
-                              <div className="mb-3">
-                                <small className="text-muted">
-                                  <i className="bi bi-person me-1"></i>
-                                  {course.scholar_fname} {course.scholar_lname}
-                                </small>
-                              </div>
-
-                              {/* Stats */}
-                              <div className="d-flex gap-2 mb-3 flex-wrap">
-                                <Badge bg="light" text="dark">
-                                  <i className="bi bi-collection-play me-1"></i>
-                                  {course.totalVideos} videos
-                                </Badge>
-                                {course.progressPercent === 100 ? (
-                                  <Badge bg="success">
-                                    <i className="bi bi-check-circle me-1"></i>
-                                    Completed
-                                  </Badge>
-                                ) : course.progressPercent > 0 ? (
-                                  <Badge bg="info">
-                                    <i className="bi bi-play-circle me-1"></i>
-                                    In Progress
-                                  </Badge>
-                                ) : (
-                                  <Badge bg="secondary">
-                                    <i className="bi bi-clock me-1"></i>
-                                    Not Started
-                                  </Badge>
-                                )}
-                              </div>
-
-                              {/* Actions */}
-                              <div className="mt-auto d-flex gap-2">
-                                <Button 
-                                  variant="primary" 
-                                  className="flex-grow-1"
-                                  onClick={() => navigate(`/course/${course.subject_id}/${course.scholar_id}`)}
-                                >
-                                  {course.progressPercent > 0 ? 'Continue' : 'Start Learning'}
-                                </Button>
-                                <Button 
-                                  variant="outline-danger" 
-                                  onClick={() => handleRemoveFromLibrary(course)}
-                                  title="Remove from saved"
-                                >
-                                  <i className="bi bi-bookmark-x"></i>
-                                </Button>
-                              </div>
-                            </Card.Body>
-                          </Card>
-                        </Col>
-                      ))}
-                    </Row>
-                  )}
-                </div>
-              </Tab>
-            </Tabs>
-          </Card.Body>
-        </Card>
-      </Container>
-    </div>
-  );
+function EmptyLearning({ title, children }) {
+  return <div className="learning-empty"><i className="bi bi-journal-bookmark" aria-hidden="true" /><div><h3>{title}</h3><p>{children}</p></div><Link className="btn btn-outline-primary" to="/all-videos">Explore Courses</Link></div>;
 }
 
-export default Dashboard;
+function CourseSection({ id, title, description, action, loading, available, courses, renderCard, featured, children }) {
+  return <section className="learning-section" aria-labelledby={id}>
+    <div className="learning-section-heading"><div><h2 id={id}>{title}</h2><p>{description}</p></div>{action}</div>
+    {loading ? <p className="learning-loading" role="status">Loading your learning space…</p>
+      : !available ? <p className="learning-unavailable">This information is temporarily unavailable.</p>
+      : courses.length ? <div className={featured ? 'learning-continue-grid' : 'learning-course-grid'}>{courses.map(course => renderCard(course, featured))}</div> : children}
+  </section>;
+}
+
+export default function Dashboard() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [data, setData] = useState({});
+  const [errors, setErrors] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [reload, setReload] = useState(0);
+  const [search, setSearch] = useState('');
+  const [learningSearch, setLearningSearch] = useState('');
+  const [activeTab, setActiveTab] = useState('purchased');
+  const [saving, setSaving] = useState(null);
+  const [saveError, setSaveError] = useState('');
+
+  useEffect(() => {
+    if (!user?.token) return;
+    let cancelled = false;
+    setLoading(true);
+    const entries = Object.entries(requests);
+    Promise.allSettled(entries.map(([, path]) => axios.get(`${API}${path}`, {
+      headers: { Authorization: `Bearer ${user.token}` }
+    }))).then(results => {
+      if (cancelled) return;
+      const next = {};
+      const failed = [];
+      results.forEach((result, index) => {
+        const key = entries[index][0];
+        if (result.status === 'fulfilled') next[key] = result.value.data;
+        else failed.push(key);
+      });
+      setData(next);
+      setErrors(failed);
+      setLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [user?.token, reload]);
+
+  const catalog = buildCatalog(data.catalog?.videos || []).map(course => ({
+    ...course,
+    university: course.university || data.universities?.find(item => String(item.id) === String(course.universityId))?.name
+  }));
+  const progress = data.progress?.progress ?? null;
+  const purchasesReady = !!data.bundles && !!data.legacy;
+  const purchased = buildPurchased(catalog, data.bundles?.purchases || [], data.legacy?.purchases || [], progress);
+  const savedRows = data.saved?.library || [];
+  const savedKeys = new Set(savedRows.map(course => courseKey(course.subject_id, course.scholar_id)));
+  const saved = savedRows.map(row => {
+    const key = courseKey(row.subject_id, row.scholar_id);
+    return purchased.find(course => course.key === key) || withProgress(catalog.find(course => course.key === key) || {
+      key, subjectId: row.subject_id, scholarId: row.scholar_id, title: row.subject_name,
+      programme: row.degree_programmes, university: row.scholar_university || row.university_label,
+      universityId: row.university_id, ...classificationFields(row),
+      scholar: [row.scholar_fname, row.scholar_lname].filter(Boolean).join(' '),
+      videos: row.videos || [], totalVideos: row.totalVideos
+    }, progress);
+  });
+  const inProgress = purchased.filter(course => course.progress?.started && !course.progress.completed);
+  const completed = purchased.filter(course => course.progress?.completed);
+  const continuing = inProgress.filter(course => course.active).sort((a, b) => b.progress.lastActivity - a.progress.lastActivity).slice(0, 2);
+  const recommended = recommendCourses(catalog, purchased, data.profile);
+  const university = data.universities?.find(item => String(item.id) === String(data.profile?.university_id));
+  const hasMatchingProgramme = recommended.some(course => matchesProgramme(course, data.profile?.degree_programme, data.profile?.university_id));
+  const scholarAccess = user?.roles?.includes('Scholar');
+  const isApplicant = data.scholar?.isScholar && !data.scholar?.approved;
+  const progressReady = purchasesReady && !!data.catalog && !!data.progress;
+  const stats = [
+    ['Courses Purchased', purchasesReady ? purchased.length : null, 'bag-check'],
+    ['Saved Courses', data.saved ? savedKeys.size : null, 'bookmark'],
+    ['Completed', progressReady ? completed.length : null, 'check2-circle'],
+    ['In Progress', progressReady ? inProgress.length : null, 'play-circle']
+  ];
+
+  const toggleSaved = async course => {
+    if (saving) return;
+    const removing = savedKeys.has(course.key);
+    setSaving(course.key);
+    setSaveError('');
+    try {
+      await axios.post(`${API}/library/${removing ? 'remove' : 'add'}`, {
+        subjectId: course.subjectId, scholarId: course.scholarId
+      }, { headers: { Authorization: `Bearer ${user.token}` } });
+      setData(previous => ({ ...previous, saved: { library: removing
+        ? previous.saved.library.filter(row => courseKey(row.subject_id, row.scholar_id) !== course.key)
+        : [...previous.saved.library, { subject_id: course.subjectId, scholar_id: course.scholarId, subject_name: course.title,
+          degree_programmes: course.programme, scholar_university: course.university, university_id: course.universityId,
+          ...classificationFields(course), videos: course.videos, totalVideos: course.totalVideos }] } }));
+    } catch {
+      setSaveError('Your saved courses could not be updated. Please try again.');
+    } finally { setSaving(null); }
+  };
+  const renderCard = (course, featured = false) => <LearningCourseCard key={course.key} course={course} featured={featured} saved={savedKeys.has(course.key)} onSave={data.saved ? toggleSaved : null} saving={!!saving} />;
+
+  return <main className="learner-dashboard">
+    <Container className="learning-container">
+      <header className="learning-hero">
+        <div className="learning-identity"><LearnerAvatar id={data.profile?.avatar_id} size={68} /><div><span className="learning-eyebrow">MY UNICLIPS</span><h1>Welcome back, {data.profile?.fname || user?.fname || user?.firstname || 'learner'} <span aria-hidden="true">👋</span></h1><p>What do you want to learn today?</p></div></div>
+        <div className="learning-account-actions"><Link to="/support" className="btn btn-outline-primary">Support</Link><Link to="/edit-profile" className="btn btn-outline-primary"><i className="bi bi-person-gear me-2" aria-hidden="true" />Edit Profile</Link>{scholarAccess && <Link to="/scholar-dashboard" className="btn btn-primary">Scholar Dashboard</Link>}<button type="button" className="btn btn-link" onClick={() => { logout(); navigate('/'); }}>Logout</button></div>
+        <form className="learning-search" role="search" onSubmit={event => { event.preventDefault(); navigate(`/all-videos${search.trim() ? `?search=${encodeURIComponent(search.trim())}` : ''}`); }}><i className="bi bi-search" aria-hidden="true" /><label className="visually-hidden" htmlFor="learner-course-search">Search courses, subjects or topics</label><input id="learner-course-search" type="search" placeholder="Search courses, subjects or topics..." value={search} onChange={event => setSearch(event.target.value)} /><button type="submit" className="btn btn-primary">Search</button></form>
+      </header>
+      {errors.length > 0 && <Alert variant="warning">Some learning information could not be loaded. Unavailable counts are shown as —. <button className="btn btn-link p-0" onClick={() => setReload(value => value + 1)}>Try again</button></Alert>}
+      {saveError && <Alert variant="danger" onClose={() => setSaveError('')} dismissible>{saveError}</Alert>}
+      <section className="learning-stats" aria-label="Your learning statistics">{stats.map(([label, value, icon]) => <div className="learning-stat" key={label}><span className="learning-stat-icon"><i className={`bi bi-${icon}`} aria-hidden="true" /></span><div><strong>{loading || value === null ? '—' : value}</strong><span>{label}</span></div></div>)}</section>
+
+      <CourseSection id="continue-heading" title="Continue Learning" description="A little progress, one lesson at a time." loading={loading} available={progressReady} courses={continuing} renderCard={renderCard} featured>
+        <EmptyLearning title="Your next lesson is waiting">{purchased.length ? 'Start a course from My Learning, or explore something new.' : 'Find a course for your studies and make your first step.'}</EmptyLearning>
+      </CourseSection>
+      <section className="learning-section learning-my-courses" aria-labelledby="my-learning-heading">
+        <div className="learning-section-heading"><div><h2 id="my-learning-heading">My Learning</h2><p>Your courses, all in one place.</p></div><Link to="/all-videos">Explore Courses →</Link></div>
+        <label className="visually-hidden" htmlFor="my-learning-search">Filter My Learning</label><input id="my-learning-search" className="form-control learning-filter" type="search" placeholder="Find a course in My Learning" value={learningSearch} onChange={event => setLearningSearch(event.target.value)} />
+        <Tabs id="my-learning-tabs" activeKey={activeTab} onSelect={setActiveTab} className="learning-tabs">
+          {[['purchased', 'Purchased', purchased], ['progress', 'In Progress', inProgress], ['completed', 'Completed', completed], ['saved', 'Saved', saved]].map(([key, label, courses]) => {
+            const filtered = courses.filter(course => matchesCourseSearch(course, learningSearch));
+            const unavailable = key === 'saved' ? !data.saved : key === 'purchased' ? !purchasesReady : !progressReady;
+            return <Tab key={key} eventKey={key} title={label}>{loading ? <p role="status" className="learning-loading">Loading your courses…</p> : unavailable ? <p className="learning-unavailable">These courses could not be loaded. Please try again.</p> : filtered.length ? <div className="learning-course-grid">{filtered.map(course => renderCard(course))}</div> : <EmptyLearning title={learningSearch ? 'No matching courses' : { purchased: 'Make room for your next discovery', progress: 'Ready when you are', completed: 'Every lesson brings you closer', saved: 'Keep your next course close' }[key]}>{learningSearch ? 'Try a different course or programme name.' : { purchased: 'Your purchased courses will appear here.', progress: 'Courses you start will appear here so you can pick up where you left off.', completed: 'Finish the lessons in a course to see it here.', saved: 'Use the bookmark on a course to save it for later.' }[key]}</EmptyLearning>}</Tab>;
+          })}
+        </Tabs>
+      </section>
+
+      <CourseSection id="recommended-heading" title="Recommended for You" description={hasMatchingProgramme && university ? `Based on your programme at ${university.short_name || university.name}` : 'Explore courses for your next learning goal.'} action={<Link to="/edit-profile">{university ? 'Update interests' : 'Personalize your learning'} →</Link>} loading={loading} available={!!data.catalog} courses={recommended} renderCard={renderCard}>
+        <EmptyLearning title="You’re all caught up">Browse the catalogue or revisit a course in My Learning.</EmptyLearning>
+      </CourseSection>
+
+      <CourseSection id="new-heading" title="New on UniClips" description="Explore the latest courses in the catalogue." action={<Link to="/all-videos">See all →</Link>} loading={loading} available={!!data.catalog} courses={selectNewCourses(catalog, recommended).map(course => purchased.find(item => item.key === course.key) || course)} renderCard={renderCard}>
+        <EmptyLearning title="More learning is on the way">Check back for courses as scholars publish them.</EmptyLearning>
+      </CourseSection>
+      {scholarAccess ? <aside className="learning-scholar"><div><h2>Keep sharing what you know</h2><p>Your teaching tools are one click away.</p></div><Link className="btn btn-primary" to="/scholar-dashboard">Scholar Dashboard →</Link></aside> : data.scholar && !data.scholar.approved && <aside className="learning-scholar"><div><h2>{isApplicant ? 'Your Scholar journey has started' : 'Know a course really well? 🎓'}</h2><p>{isApplicant ? 'Your application is awaiting approval. Keep learning while the team reviews it.' : 'Help other students understand it and earn from your knowledge.'}</p></div>{!isApplicant && <Link className="btn btn-primary" to="/become-scholar">Become a Scholar →</Link>}</aside>}
+    </Container>
+  </main>;
+}

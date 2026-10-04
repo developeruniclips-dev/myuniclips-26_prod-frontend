@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Container, Row, Col, Card } from 'react-bootstrap';
 import { useAuth } from '../../context/temp';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './dashboard.css'
 
@@ -9,179 +9,71 @@ function BecomeScholar() {
     const { user } = useAuth();
     const navigate = useNavigate();
     
-    // Static values for Country and University (can be changed to dynamic later)
-    const STATIC_COUNTRY = 'Finland';
-    const STATIC_UNIVERSITY = 'Häme University of Applied Sciences (HAMK)';
-    
-    const [formData, setFormData] = useState({
-        degree: '',
-        year: ''
-    });
-    // TASK CARD FEATURE - Uncomment when ready to enable
-    // const [taskCard, setTaskCard] = useState(null);
-    // const [taskCardPreview, setTaskCardPreview] = useState(null);
+    const api = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+    const [formData, setFormData] = useState({ countryId: '', universityId: '', degree: '', year: '' });
+    const [countries, setCountries] = useState([]);
+    const [universities, setUniversities] = useState([]);
+    const [degreePrograms, setDegreePrograms] = useState([]);
+    const [loadingPrograms, setLoadingPrograms] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    
-    // Degree programs dropdown
-    const [degreePrograms, setDegreePrograms] = useState([]);
-    const [loadingPrograms, setLoadingPrograms] = useState(true);
-
-    // Fetch all degree programs from subjects table on mount
+    const [locationError, setLocationError] = useState('');
+    const [loadingUniversities, setLoadingUniversities] = useState(false);
+    const [locationRetry, setLocationRetry] = useState(0);
+    const [status, setStatus] = useState(null);
+    const [statusError, setStatusError] = useState(false);
+    const [statusRetry, setStatusRetry] = useState(0);
     useEffect(() => {
-        const fetchDegreePrograms = async () => {
-            try {
-                const response = await axios.get(
-                    `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/locations/programs/all`
-                );
-                setDegreePrograms(response.data);
-            } catch (err) {
-                console.error('Error fetching degree programs:', err);
-            } finally {
-                setLoadingPrograms(false);
-            }
-        };
-        fetchDegreePrograms();
-    }, []);
-
-    // CASCADING DROPDOWN FEATURE - Uncomment when ready to enable dynamic dropdowns
-    // const [countries, setCountries] = useState([]);
-    // const [universities, setUniversities] = useState([]);
-    // const [loadingCountries, setLoadingCountries] = useState(true);
-    // const [loadingUniversities, setLoadingUniversities] = useState(false);
-
-    // CASCADING DROPDOWN FEATURE - Fetch countries on mount
-    // useEffect(() => {
-    //     const fetchCountries = async () => {
-    //         try {
-    //             const response = await axios.get(
-    //                 `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/locations/countries`
-    //             );
-    //             setCountries(response.data);
-    //         } catch (err) {
-    //             console.error('Error fetching countries:', err);
-    //         } finally {
-    //             setLoadingCountries(false);
-    //         }
-    //     };
-    //     fetchCountries();
-    // }, []);
-
-    // CASCADING DROPDOWN FEATURE - Fetch universities when country changes
-    // useEffect(() => {
-    //     if (formData.country) {
-    //         setLoadingUniversities(true);
-    //         setUniversities([]);
-    //         setFormData(prev => ({ ...prev, university: '', degree: '' }));
-    //         
-    //         const fetchUniversities = async () => {
-    //             try {
-    //                 const response = await axios.get(
-    //                     `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/locations/universities/by-country/${formData.country}`
-    //                 );
-    //                 setUniversities(response.data);
-    //             } catch (err) {
-    //                 console.error('Error fetching universities:', err);
-    //             } finally {
-    //                 setLoadingUniversities(false);
-    //             }
-    //         };
-    //         fetchUniversities();
-    //     } else {
-    //         setUniversities([]);
-    //     }
-    // }, [formData.country]);
-
-    // CASCADING DROPDOWN FEATURE - Fetch degree programs when university changes
-    // useEffect(() => {
-    //     if (formData.university) {
-    //         setLoadingPrograms(true);
-    //         setFormData(prev => ({ ...prev, degree: '' }));
-    //         
-    //         const fetchPrograms = async () => {
-    //             try {
-    //                 const response = await axios.get(
-    //                     `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/locations/programs/by-university/${formData.university}`
-    //                 );
-    //                 setDegreePrograms(response.data);
-    //             } catch (err) {
-    //                 console.error('Error fetching degree programs:', err);
-    //             } finally {
-    //                 setLoadingPrograms(false);
-    //             }
-    //         };
-    //         fetchPrograms();
-    //     } else {
-    //         setDegreePrograms([]);
-    //     }
-    // }, [formData.university]);
-
-    // Don't redirect if not logged in - allow them to see the page
-    // They'll be prompted to login when they try to submit
-
-    const handleChange = (e) => {
-        setFormData({
-            ...formData,
-            [e.target.name]: e.target.value
-        });
+        let active = true; setStatus(null); setStatusError(false);
+        if (user?.token) axios.get(`${api}/scholar-profile/status`, {headers:{Authorization:`Bearer ${user.token}`}})
+            .then(r => { if(active) setStatus(r.data); })
+            .catch(() => { if(active) setStatusError(true); });
+        return () => { active = false; };
+    }, [api, user?.token, statusRetry]);
+    useEffect(() => {
+        axios.get(`${api}/locations/countries?available=1`).then(r => { setCountries(r.data); setLocationError(''); })
+            .catch(() => setLocationError('Unable to load countries. Please try again.'));
+    }, [api, locationRetry]);
+    useEffect(() => {
+        let active = true;
+        setUniversities([]); setLoadingUniversities(Boolean(formData.countryId));
+        if (formData.countryId) axios.get(`${api}/locations/universities/by-country/${formData.countryId}?available=1`)
+            .then(r => { if (active) {setUniversities(r.data); setLocationError('');} })
+            .catch(() => { if (active) setLocationError('Unable to load universities.'); }).finally(() => {if(active) setLoadingUniversities(false);});
+        return () => { active = false; };
+    }, [api, formData.countryId, locationRetry]);
+    useEffect(() => {
+        let active = true;
+        setDegreePrograms([]);
+        setLoadingPrograms(Boolean(formData.universityId));
+        if (formData.universityId) axios.get(`${api}/locations/programs/by-university/${formData.universityId}`)
+            .then(r => { if (active) {setDegreePrograms(r.data); setLocationError('');} })
+            .catch(() => { if (active) setLocationError('Unable to load programmes.'); })
+            .finally(() => { if (active) setLoadingPrograms(false); });
+        return () => { active = false; };
+    }, [api, formData.universityId, locationRetry]);
+    const handleChange = e => {
+        const { name, value } = e.target;
+        setFormData(previous => ({ ...previous, [name]: value,
+            ...(name === 'countryId' ? { universityId: '', degree: '' } : {}),
+            ...(name === 'universityId' ? { degree: '' } : {}) }));
     };
-
-    // TASK CARD FEATURE - Uncomment when ready to enable
-    // const handleTaskCardChange = (e) => {
-    //     const file = e.target.files[0];
-    //     if (file) {
-    //         // Validate file type
-    //         const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
-    //         if (!allowedTypes.includes(file.type)) {
-    //             setError('Please upload a valid image (JPG, PNG) or PDF file');
-    //             return;
-    //         }
-    //         // Validate file size (max 5MB)
-    //         if (file.size > 5 * 1024 * 1024) {
-    //             setError('File size must be less than 5MB');
-    //             return;
-    //         }
-    //         setTaskCard(file);
-    //         // Create preview for images
-    //         if (file.type.startsWith('image/')) {
-    //             setTaskCardPreview(URL.createObjectURL(file));
-    //         } else {
-    //             setTaskCardPreview(null);
-    //         }
-    //         setError('');
-    //     }
-    // };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         
-        // Check if user is logged in when they try to submit
         if (!user || !user.token) {
             alert('Please login or create an account to submit your scholar application');
             navigate('/login');
             return;
         }
 
-        // TASK CARD FEATURE - Uncomment when ready to enable
-        // if (!taskCard) {
-        //     setError('Please upload your student ID card (task card) to verify your student status');
-        //     return;
-        // }
 
         setLoading(true);
         setError('');
 
         try {
-            // Submit with static university name for now
-            // CASCADING DROPDOWN FEATURE - Uncomment when enabling dynamic dropdowns:
-            // const selectedUniversity = universities.find(u => u.id.toString() === formData.university);
-            // const universityName = selectedUniversity ? selectedUniversity.name : formData.university;
-
-            const submitData = {
-                university: STATIC_UNIVERSITY,
-                degree: formData.degree,
-                year: formData.year
-            };
+            const submitData = formData;
 
             await axios.post(
                 `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/auth/become-scholar`,
@@ -193,22 +85,6 @@ function BecomeScholar() {
                 }
             );
 
-            // TASK CARD FEATURE - Uncomment when ready to enable FormData submission
-            // const submitFormData = new FormData();
-            // submitFormData.append('university', universityName);
-            // submitFormData.append('degree', formData.degree);
-            // submitFormData.append('year', formData.year);
-            // submitFormData.append('taskCard', taskCard);
-            // await axios.post(
-            //     `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/auth/become-scholar`,
-            //     submitFormData,
-            //     {
-            //         headers: {
-            //             Authorization: `Bearer ${user.token}`,
-            //             'Content-Type': 'multipart/form-data'
-            //         }
-            //     }
-            // );
 
             alert('Application submitted successfully! We will review your application and notify you.');
             navigate('/dashboard');
@@ -220,12 +96,14 @@ function BecomeScholar() {
     };
     return (
         <div className="container py-5">
+            {user && <Link to={user.roles?.includes('Scholar') ? '/scholar-dashboard' : '/dashboard'} className="btn btn-outline-primary mb-3">Dashboard</Link>}
             <h1 className="fw-bold mb-4 text-center" style={{ fontSize: '2.5rem' }}>Become a UniClips Scholar</h1>
 
             <p className="text-secondary text-center fs-5 mb-5">
-                Share your expertise, help your peers, and earn significant revenue from your course sales.
+                Share your expertise, help your peers, and earn from your course sales.
             </p>
 
+            <p className="text-center"><a href="#scholar-application">Jump to application</a></p>
             <Container className="py-4">
                 <Row className="g-4 justify-content-center">
 
@@ -241,13 +119,13 @@ function BecomeScholar() {
                             <Card.Body>
                                 <h2 className="fw-bold mb-3" style={{ color: '#6366f1', fontSize: '2rem' }}>70% Share</h2>
                                 <Card.Text className="text-dark" style={{ fontSize: '1rem' }}>
-                                    Revenue share on your first 100 sales.
+                                    Earn 70% of the course price for the first 100 sales of each course, then 50% thereafter.
                                 </Card.Text>
                             </Card.Body>
                         </Card>
                     </div>
 
-                    {/* Card 2 - Fast Payouts */}
+                    {/* Card 2 - Track Your Earnings */}
                     <div className="col-md-4">
                         <Card className="border-0 shadow-sm rounded-4 p-4 h-100 text-center" 
                               style={{ 
@@ -257,9 +135,9 @@ function BecomeScholar() {
                               onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
                               onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}>
                             <Card.Body>
-                                <h2 className="fw-bold mb-3" style={{ color: '#6366f1', fontSize: '2rem' }}>Fast Payouts</h2>
+                                <h2 className="fw-bold mb-3" style={{ color: '#6366f1', fontSize: '2rem' }}>Track Your Earnings</h2>
                                 <Card.Text className="text-dark" style={{ fontSize: '1rem' }}>
-                                    Track and receive your earnings monthly.
+                                    See your course sales and earnings from your Scholar dashboard.
                                 </Card.Text>
                             </Card.Body>
                         </Card>
@@ -317,7 +195,7 @@ function BecomeScholar() {
                                 </div>
                                 <Card.Title className="fw-bold text-success-emphasis">Earn While Helping</Card.Title>
                                 <Card.Text className="text-dark opacity-75">
-                                    Generate consistent revenue from your course sales and uploaded materials.
+                                    Earn from course sales while helping students succeed.
                                 </Card.Text>
                             </Card.Body>
                         </Card>
@@ -334,7 +212,7 @@ function BecomeScholar() {
                                 </div>
                                 <Card.Title className="fw-bold text-warning-emphasis">Grow Your Impact</Card.Title>
                                 <Card.Text className="text-dark opacity-75">
-                                    Build a following, gain recognition, and become a trusted UniClips scholar.
+                                    Build your academic reputation, gain recognition, and become a trusted UniClips Scholar.
                                 </Card.Text>
                             </Card.Body>
                         </Card>
@@ -347,51 +225,47 @@ function BecomeScholar() {
             <div className="row justify-content-center mt-5">
                 <div className="col-md-8">
                     <Card className="border-0 shadow-sm">
-                        <Card.Body className="p-5">
+                        <Card.Body className="p-3 p-sm-5" id="scholar-application" style={{scrollMarginTop:'110px'}}>
                             <h3 className="fw-bold mb-2 text-center">Scholar Application Form</h3>
                             <p className="text-muted text-center mb-4">Fill in your details to start your journey as a UniClips Scholar</p>
                             
+                            {locationError && <p role="alert">{locationError} <button type="button" className="btn btn-link" onClick={()=>setLocationRetry(n=>n+1)}>Try Again</button></p>}
                             {error && (
                                 <div className="alert alert-danger" role="alert">
                                     {error}
                                 </div>
                             )}
 
-                            <form onSubmit={handleSubmit}>
-                                {/* Country - Static for now */}
+                            {!user && <p className="text-center">You need a UniClips learner account to apply as a Scholar. <Link to="/login">Login</Link> or <Link to="/register">Create Account</Link>.</p>}
+                            {user && !status && !statusError && <p role="status">Checking your application...</p>}
+                            {statusError && <p role="alert">Unable to check your application. <button type="button" className="btn btn-link" onClick={() => setStatusRetry(n=>n+1)}>Try Again</button></p>}
+                            {status?.isScholar && <div role="status"><h4>{status.approved ? 'Your Scholar application is approved' : 'Your application is awaiting review'}</h4><p>{status.approved ? 'Course approval and content review still apply before publication.' : 'You already have a Scholar application. We will notify you after review.'}</p><Link to={status.approved ? '/scholar-dashboard' : '/dashboard'} className="btn btn-primary">{status.approved ? 'Scholar Dashboard' : 'Learner Dashboard'}</Link></div>}
+                            {(!user || (status && !status.isScholar)) && <form onSubmit={handleSubmit}>
                                 <div className="mb-4">
-                                    <label className="form-label fw-semibold">Country <span className="text-danger">*</span></label>
-                                    <input 
-                                        type="text"
-                                        className="form-control py-2" 
-                                        value={STATIC_COUNTRY}
-                                        readOnly
-                                        style={{ backgroundColor: '#f8f9fa' }}
-                                    />
+                                    <label htmlFor="scholar-country" className="form-label fw-semibold">Country *</label>
+                                    <select id="scholar-country" name="countryId" className="form-select py-2" value={formData.countryId} onChange={handleChange} required>
+                                        <option value="">Select your country</option>
+                                        {countries.map(country => <option key={country.id} value={country.id}>{country.name}</option>)}
+                                    </select>
                                 </div>
-
-                                {/* University - Static for now */}
                                 <div className="mb-4">
-                                    <label className="form-label fw-semibold">University <span className="text-danger">*</span></label>
-                                    <input 
-                                        type="text"
-                                        className="form-control py-2" 
-                                        value={STATIC_UNIVERSITY}
-                                        readOnly
-                                        style={{ backgroundColor: '#f8f9fa' }}
-                                    />
+                                    <label htmlFor="scholar-university" className="form-label fw-semibold">University *</label>
+                                    <select id="scholar-university" name="universityId" className="form-select py-2" value={formData.universityId} onChange={handleChange} required disabled={loadingUniversities || !formData.countryId || !universities.length}>
+                                        <option value="">{loadingUniversities ? 'Loading universities...' : 'Select your university'}</option>
+                                        {universities.map(university => <option key={university.id} value={university.id}>{university.name}{university.short_name ? ` (${university.short_name})` : ''}</option>)}
+                                    </select>
                                 </div>
 
                                 {/* Degree Program - Dropdown from subjects table */}
                                 <div className="mb-4">
-                                    <label className="form-label fw-semibold">Degree Program <span className="text-danger">*</span></label>
+                                    <label className="form-label fw-semibold" htmlFor="scholar-degree">Degree Program <span className="text-danger">*</span></label>
                                     <select 
-                                        name="degree"
+                                        id="scholar-degree" name="degree"
                                         className="form-select py-2" 
                                         value={formData.degree}
                                         onChange={handleChange}
                                         required
-                                        disabled={loadingPrograms}
+                                        disabled={loadingPrograms || !formData.universityId}
                                     >
                                         <option value="">
                                             {loadingPrograms ? 'Loading programs...' : 'Select your degree program'}
@@ -405,10 +279,10 @@ function BecomeScholar() {
                                 </div>
 
                                 <div className="mb-4">
-                                    <label className="form-label fw-semibold">Expected Graduation Year <span className="text-danger">*</span></label>
+                                    <label htmlFor="scholar-year" className="form-label fw-semibold">Expected Graduation Year <span className="text-danger">*</span></label>
                                     <input 
                                         type="number" 
-                                        name="year"
+                                        id="scholar-year" name="year"
                                         className="form-control py-2" 
                                         placeholder="e.g., 2027"
                                         min="2024"
@@ -419,69 +293,12 @@ function BecomeScholar() {
                                     />
                                 </div>
 
-                                {/* TASK CARD FEATURE - Uncomment when ready to enable
-                                <div className="mb-4">
-                                    <label className="form-label fw-semibold">
-                                        Student ID Card (Task Card) <span className="text-danger">*</span>
-                                    </label>
-                                    <p className="text-muted small mb-2">
-                                        Upload a photo of your student ID to verify your student status
-                                    </p>
-                                    <div 
-                                        className="border border-2 border-dashed rounded-3 p-4 text-center"
-                                        style={{ 
-                                            borderColor: taskCard ? '#10b981' : '#dee2e6',
-                                            backgroundColor: taskCard ? '#f0fdf4' : '#f8f9fa',
-                                            cursor: 'pointer'
-                                        }}
-                                        onClick={() => document.getElementById('taskCardInput').click()}
-                                    >
-                                        <input 
-                                            type="file" 
-                                            id="taskCardInput"
-                                            accept="image/*,.pdf"
-                                            onChange={handleTaskCardChange}
-                                            style={{ display: 'none' }}
-                                        />
-                                        {taskCardPreview ? (
-                                            <div>
-                                                <img 
-                                                    src={taskCardPreview} 
-                                                    alt="Task Card Preview" 
-                                                    style={{ maxHeight: '150px', borderRadius: '8px' }}
-                                                />
-                                                <p className="text-success mt-2 mb-0">
-                                                    <i className="bi bi-check-circle me-1"></i>
-                                                    {taskCard.name}
-                                                </p>
-                                            </div>
-                                        ) : taskCard ? (
-                                            <div>
-                                                <i className="bi bi-file-earmark-pdf text-danger fs-1"></i>
-                                                <p className="text-success mt-2 mb-0">
-                                                    <i className="bi bi-check-circle me-1"></i>
-                                                    {taskCard.name}
-                                                </p>
-                                            </div>
-                                        ) : (
-                                            <div>
-                                                <i className="bi bi-cloud-arrow-up text-primary fs-1"></i>
-                                                <p className="mb-1 mt-2">
-                                                    <strong>Click to upload</strong> your student ID
-                                                </p>
-                                                <p className="text-muted small mb-0">
-                                                    JPG, PNG or PDF (max 5MB)
-                                                </p>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                                */}
+                                
 
                                 <div className="mb-4">
                                     <div className="alert alert-info">
                                         <i className="bi bi-info-circle me-2"></i>
-                                        <strong>Note:</strong> After submitting this application, an admin will review it. Once approved, you'll be able to select subjects you want to teach and upload course videos.
+                                        <strong>Note:</strong> After Scholar approval, your course application and uploaded content must also be reviewed before publication.
                                     </div>
                                 </div>
 
@@ -497,9 +314,9 @@ function BecomeScholar() {
                                 </div>
 
                                 <p className="text-center text-muted mt-3 mb-0">
-                                    <small>We'll review your application within 2-3 business days</small>
+                                    <small>We aim to review your application within 2-4 business days</small>
                                 </p>
-                            </form>
+                            </form>}
                         </Card.Body>
                     </Card>
                 </div>

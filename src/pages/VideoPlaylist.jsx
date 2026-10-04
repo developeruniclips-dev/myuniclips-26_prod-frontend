@@ -3,18 +3,9 @@ import { Container, Row, Col, Card, Button, Modal, Badge, Form, InputGroup } fro
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/temp";
 import axios from "axios";
+import { courseCategoryLabel } from '../utils/courseClassification.mjs';
 
-// Helper function to extract Vimeo video ID from URL
-const getVimeoId = (url) => {
-  if (!url) return null;
-  const match = url.match(/vimeo\.com\/(\d+)/);
-  return match ? match[1] : null;
-};
-
-// Helper function to get Vimeo thumbnail URL
-const getVimeoThumbnail = (videoId) => {
-  return `https://vumbnail.com/${videoId}.jpg`;
-};
+import { publishedCourses, filterPublishedCourses } from '../utils/publicCourses.mjs';
 
 function VideoPlaylist() {
   const { user } = useAuth();
@@ -22,76 +13,68 @@ function VideoPlaylist() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [requestError, setRequestError] = useState(false);
+  const [retry, setRetry] = useState(0);
+  const [universities, setUniversities] = useState([]);
+  const [programmes, setProgrammes] = useState([]);
+  const [locationError, setLocationError] = useState('');
+  const [programmesLoading, setProgrammesLoading] = useState(false);
+  const api = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
+  const searchQuery = searchParams.get('search') || '';
+  const generalOnly = searchParams.get('category') === 'general';
 
-  // Filter courses based on search query
-  const filteredCourses = courses.filter(course => {
-    if (!searchQuery.trim()) return true;
-    const query = searchQuery.toLowerCase();
-    return (
-      course.subjectName?.toLowerCase().includes(query) ||
-      course.scholarName?.toLowerCase().includes(query) ||
-      course.degreeProgramme?.toLowerCase().includes(query) ||
-      course.university?.toLowerCase().includes(query)
-    );
-  });
+  const university = searchParams.get('university') || '';
+  const programme = university ? searchParams.get('programme') || '' : '';
+  const selectedUniversity = universities.find(u => String(u.id) === university);
+  const filteredCourses = filterPublishedCourses(courses, {search:searchQuery, university, programme, general:generalOnly});
+  const setFilter = (name, value) => {
+    const next = new URLSearchParams(searchParams);
+    if (value) next.set(name,value); else next.delete(name);
+    if (name === 'university') next.delete('programme');
+    setSearchParams(next);
+  };
+  useEffect(() => {
+    let active = true;
+    setLocationError('');
+    axios.get(`${api}/locations/universities?available=1`).then(r => { if(active) setUniversities(r.data); })
+      .catch(() => { if(active) setLocationError('Unable to load academic filters. Try again.'); });
+    return () => { active = false; };
+  }, [api,retry]);
+  useEffect(() => {
+    let active = true; setProgrammes([]); setProgrammesLoading(Boolean(university));
+    if (university) axios.get(`${api}/locations/programs/by-university/${university}`)
+      .then(r => { if(active) { setProgrammes(r.data); setLocationError(''); } })
+      .catch(() => { if(active) setLocationError('Unable to load programmes. Try again.'); })
+      .finally(() => { if(active) setProgrammesLoading(false); });
+    return () => { active = false; };
+  },[api,university,retry]);
 
   // Update URL when search changes
   const handleSearchChange = (value) => {
-    setSearchQuery(value);
-    if (value.trim()) {
-      setSearchParams({ search: value });
-    } else {
-      setSearchParams({});
-    }
+    const next = new URLSearchParams(searchParams);
+    if (value.trim()) next.set('search', value);
+    else next.delete('search');
+    setSearchParams(next, { replace: true });
   };
 
   useEffect(() => {
+    let active = true; setLoading(true); setRequestError(false);
     const fetchVideos = async () => {
       try {
         const res = await axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/videos/all-videos`);
         const videos = res.data.videos || [];
         
-        // Group videos by subject + scholar to create courses
-        const courseMap = {};
-        videos.forEach(v => {
-          const key = `${v.subject_id}-${v.scholar_user_id}`;
-          if (!courseMap[key]) {
-            courseMap[key] = {
-              id: key,
-              subjectId: v.subject_id,
-              subjectName: v.subject_name,
-              degreeProgramme: v.degree_programme,
-              scholarId: v.scholar_user_id,
-              scholarName: `${v.scholar_fname} ${v.scholar_lname}`,
-              scholarInitials: `${v.scholar_fname?.[0] || ''}${v.scholar_lname?.[0] || ''}`,
-              university: v.scholar_university || 'University not specified',
-              videos: []
-            };
-          }
-          courseMap[key].videos.push(v);
-        });
-
-        // Sort videos within each course by sequence_index
-        Object.values(courseMap).forEach(course => {
-          course.videos.sort((a, b) => a.sequence_index - b.sequence_index);
-          // Get thumbnail from first video
-          const firstVideo = course.videos[0];
-          course.thumbnailUrl = getVimeoThumbnail(getVimeoId(firstVideo?.video_url));
-          course.totalVideos = course.videos.length;
-          course.firstVideoFree = course.videos.some(v => v.is_free);
-        });
-
-        setCourses(Object.values(courseMap));
+        if (active) setCourses(publishedCourses(videos));
       } catch (err) {
-        console.error(err);
+        if (active) setRequestError(true);
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     };
     fetchVideos();
-  }, []);
+    return () => { active = false; };
+  }, [retry]);
 
   const handleCourseClick = (course) => {
     if (!user) {
@@ -111,26 +94,46 @@ function VideoPlaylist() {
 
       {/* Search Bar */}
       <div className="mb-4">
+        <div className="d-flex flex-wrap gap-2 align-items-start">
         <InputGroup style={{ maxWidth: '500px' }}>
           <Form.Control
+            id="course-search" aria-label="Search courses"
             type="text"
             placeholder="Search by subject, scholar, degree, or university..."
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
             style={{ padding: '0.75rem 1rem' }}
           />
-          {searchQuery && (
+          {locationError && <p role="alert">{locationError} <Button variant="link" onClick={() => setRetry(n => n+1)}>Try Again</Button></p>}
+        {searchQuery && (
             <Button 
-              variant="outline-secondary" 
+              variant="outline-secondary" aria-label="Clear search"
               onClick={() => handleSearchChange('')}
             >
               <i className="bi bi-x-lg"></i>
             </Button>
           )}
-          <Button variant="primary">
+          <Button variant="primary" aria-label="Search courses" onClick={() => document.getElementById('course-search').focus()}>
             <i className="bi bi-search"></i>
           </Button>
         </InputGroup>
+        <Form.Select aria-label="University" style={{maxWidth:'360px'}} value={university} onChange={e => setFilter('university',e.target.value)}>
+          <option value="">All Universities</option>{universities.map(u => <option key={u.id} value={u.id}>{u.name}{u.short_name ? ` (${u.short_name})` : ''}</option>)}
+        </Form.Select>
+        <Form.Select aria-label="Programme" style={{maxWidth:'360px'}} value={programme} disabled={!university || programmesLoading} onChange={e => setFilter('programme',e.target.value)}>
+          <option value="">{programmesLoading ? 'Loading programmes...' : 'All Programmes'}</option>{programmes.map(p => <option key={p.program} value={p.program}>{p.program}</option>)}
+        </Form.Select>
+        <Form.Select aria-label="Course category" style={{ maxWidth: '270px', padding: '0.75rem 1rem' }}
+          value={generalOnly ? 'general' : 'all'} onChange={event => {
+            const next = new URLSearchParams(searchParams);
+            if (event.target.value === 'general') next.set('category', 'general');
+            else next.delete('category');
+            setSearchParams(next);
+          }}>
+          <option value="all">All Courses</option>
+          <option value="general">General University Courses</option>
+        </Form.Select>
+        </div>
         {searchQuery && (
           <small className="text-muted mt-2 d-block">
             Found {filteredCourses.length} course{filteredCourses.length !== 1 ? 's' : ''} matching "{searchQuery}"
@@ -148,8 +151,9 @@ function VideoPlaylist() {
         </div>
       )}
 
+      {requestError && <Card className="border-0 shadow-sm text-center py-5"><Card.Body><h3>We couldn't load courses right now.</h3><Button onClick={() => setRetry(n => n+1)}>Try Again</Button></Card.Body></Card>}
       {/* Empty State - No courses at all */}
-      {!loading && courses.length === 0 && (
+      {!loading && !requestError && courses.length === 0 && (
         <Card className="border-0 shadow-sm text-center py-5">
           <Card.Body>
             <div className="mb-4">
@@ -180,34 +184,33 @@ function VideoPlaylist() {
       )}
 
       {/* No Search Results */}
-      {!loading && courses.length > 0 && filteredCourses.length === 0 && (
+      {!loading && !requestError && courses.length > 0 && filteredCourses.length === 0 && (
         <Card className="border-0 shadow-sm text-center py-5">
           <Card.Body>
             <div className="mb-4">
               <i className="bi bi-search" style={{ fontSize: '4rem', color: '#6c757d' }}></i>
             </div>
-            <h4 className="fw-bold mb-3">No courses found</h4>
+            <h4 className="fw-bold mb-3">{programme ? 'No published courses for this programme yet.' : selectedUniversity && !courses.some(c => String(c.universityId) === university) ? `No published courses at ${selectedUniversity.short_name || selectedUniversity.name} yet.` : 'No courses found'}</h4>
             <p className="text-muted mb-4">
-              No courses match "{searchQuery}". Try a different search term.
+              {selectedUniversity && !courses.some(c => String(c.universityId) === university) ? 'New courses will appear here as Scholars begin publishing.' : 'No published courses match these filters. Try another search or category.'}
             </p>
             <Button 
               variant="outline-primary"
-              onClick={() => handleSearchChange('')}
+              onClick={() => setSearchParams({})}
             >
-              Clear Search
+              Clear Filters
             </Button>
           </Card.Body>
         </Card>
       )}
 
       {/* Course Grid */}
-      <Row>
+      {!loading && !requestError && <Row>
         {filteredCourses.map((course) => (
           <Col lg={4} md={6} className="mb-4" key={course.id}>
             <Card 
               className="h-100 shadow-sm course-card" 
               style={{ cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s' }}
-              onClick={() => handleCourseClick(course)}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = 'translateY(-5px)';
                 e.currentTarget.style.boxShadow = '0 10px 30px rgba(0,0,0,0.15)';
@@ -230,7 +233,7 @@ function VideoPlaylist() {
                   }}
                   onError={(e) => {
                     e.target.onerror = null;
-                    e.target.src = 'https://via.placeholder.com/640x360?text=Course+Thumbnail';
+                    e.target.src = '/course-fallback.svg';
                   }}
                 />
                 {/* Play overlay */}
@@ -295,10 +298,11 @@ function VideoPlaylist() {
                 <div className="mb-2">
                   <small className="text-muted">
                     <i className="bi bi-mortarboard me-1"></i>
-                    {course.degreeProgramme || 'General Studies'}
+                    {courseCategoryLabel(course, course.degreeProgramme || 'General Studies')}
                   </small>
                 </div>
 
+                {course.is_general_university_course && <details className="mb-2" onClick={e => e.stopPropagation()}><summary className="small">View {course.applicable_programmes.length} applicable programmes</summary><ul className="small" style={{maxHeight:'140px',overflowY:'auto'}}>{course.applicable_programmes.map(p => <li key={p}>{p}</li>)}</ul></details>}
                 {/* University */}
                 <div className="mb-3">
                   <small className="text-muted">
@@ -322,22 +326,23 @@ function VideoPlaylist() {
                     <small className="text-muted">Scholar</small>
                   </div>
                 </div>
+                <Button variant="outline-primary" className="mt-3" onClick={() => handleCourseClick(course)} aria-label={`Start learning ${course.subjectName}`}>Start Learning</Button>
               </Card.Body>
             </Card>
           </Col>
         ))}
-      </Row>
+      </Row>}
 
       {/* Login Required Modal */}
       <Modal show={showLoginModal} onHide={() => setShowLoginModal(false)} centered>
         <Modal.Header closeButton>
-          <Modal.Title>Login Required</Modal.Title>
+          <Modal.Title>Start Learning</Modal.Title>
         </Modal.Header>
         <Modal.Body className="text-center py-4">
           <i className="bi bi-lock-fill text-primary" style={{ fontSize: '3rem' }}></i>
-          <h5 className="mt-3 mb-2">Please Login to View Courses</h5>
+          <h5 className="mt-3 mb-2">Sign in to start learning</h5>
           <p className="text-muted">
-            You need to be logged in to access course content. The first video of each course is free!
+            Sign in or create a free account to access this course. The first video is free.
           </p>
         </Modal.Body>
         <Modal.Footer className="justify-content-center">
@@ -348,6 +353,7 @@ function VideoPlaylist() {
             <i className="bi bi-box-arrow-in-right me-2"></i>
             Login
           </Button>
+          <Button variant="outline-primary" onClick={() => navigate('/register')}>Create Account</Button>
         </Modal.Footer>
       </Modal>
 

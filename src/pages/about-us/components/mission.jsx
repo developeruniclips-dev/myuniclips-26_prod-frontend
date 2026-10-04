@@ -30,7 +30,7 @@ function Mission() {
               <p className="lead text-secondary lh-lg">
                 <strong>What we aim to achieve:</strong> To make reliable,
                 high-impact learning content accessible to all university
-                students — establishing <strong>UniClips</strong> as the
+                students, establishing <strong>UniClips</strong> as the
                 standard resource for both <em>first-time comprehension</em> and
                 <em> final course review</em>.
               </p>
@@ -42,7 +42,7 @@ function Mission() {
               <p className="lead text-secondary lh-lg">
                 <strong>How we make it happen:</strong> By closing the gap
                 between global e-learning and local university needs through
-                <strong> precise, peer-to-peer, syllabus-aligned, and affordable video content</strong> — created by proven scholars who guarantee mastery of the curriculum.
+                <strong> precise, peer-to-peer, syllabus-aligned, and affordable video content</strong> created by proven scholars who guarantee mastery of the curriculum.
               </p>
             </div>
           </Col>

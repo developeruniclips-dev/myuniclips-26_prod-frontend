@@ -30,8 +30,8 @@ function Faq() {
                     How long are the courses, and how many videos are included?
                     </Accordion.Header>
                     <Accordion.Body>
-                    Our courses are designed to be concise and high-impact. Each course includes up to <strong>7 focused videos</strong>, each lasting no more than <strong>20 minutes</strong>.  
-                    This makes them perfect for review sessions or last-minute revision.
+                    Our courses are designed to be concise and high-impact. Each course can include up to <strong>12 focused videos</strong>, with each video lasting no more than <strong>30 minutes</strong>.
+                    This gives scholars enough time to explain important concepts clearly while keeping lessons focused and easy to follow.
                     </Accordion.Body>
                 </Accordion.Item>
 
@@ -40,7 +40,7 @@ function Faq() {
                     How much does a course cost?
                     </Accordion.Header>
                     <Accordion.Body>
-                    We are committed to affordability. All UniClips courses are priced accessibly, typically under <strong>€6</strong> to ensure they fit a student budget.
+                    UniClips courses are priced with students in mind. Prices may vary depending on the course and country, but our goal is to keep learning affordable and accessible to university students. You can always see the full price of a course before purchasing.
                     </Accordion.Body>
                 </Accordion.Item>
 
@@ -51,6 +51,12 @@ function Faq() {
                     <Accordion.Body>
                     For the security of our scholars' original content, all UniClips videos are <strong>stream-only</strong>.  
                     You must be logged in and connected to the internet to watch any purchased course.
+                    </Accordion.Body>
+                </Accordion.Item>
+                <Accordion.Item eventKey="access-duration">
+                    <Accordion.Header>How long do I have access to a purchased course?</Accordion.Header>
+                    <Accordion.Body>
+                    When you purchase a course on UniClips, you get access for 5 months, giving you enough time to use the course throughout a university semester. Your access period begins from the date of purchase.
                     </Accordion.Body>
                 </Accordion.Item>
                 </Accordion>
@@ -81,7 +87,7 @@ function Faq() {
                 <Accordion.Item eventKey="6">
                     <Accordion.Header>What are the video quality requirements?</Accordion.Header>
                     <Accordion.Body>
-                    We require clear, professional-grade content — especially high-quality audio.  
+                    We require clear, professional-grade content, especially high-quality audio.
                     Videos should be easy to follow and use our official <strong>Intro/Outro bumper</strong>.  
                     We handle final editing and quality assurance before publishing.
                     </Accordion.Body>

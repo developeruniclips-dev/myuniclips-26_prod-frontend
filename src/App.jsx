@@ -26,6 +26,7 @@ import ResetPassword from "./pages/login/ResetPassword";
 import ProtectedRoute from "./components/ProtectedRoutes.jsx";
 import { AuthProvider } from "./context/temp";
 import RegisterPage from "./pages/RegUser.jsx";
+import ManageCourse from "./pages/dashboard/ManageCourse.jsx";
 import VideoUploadPage from "./pages/dashboard/VideoUploadPage.jsx";
 import VideoPlaylist from "./pages/VideoPlaylist.jsx";
 import WatchVideo from "./pages/WatchVideo.jsx";
@@ -35,6 +36,8 @@ import CourseDetail from "./pages/CourseDetail.jsx";
 import MyLibrary from "./pages/MyLibrary.jsx";
 import PrivacyPolicy from "./pages/PrivacyPolicy.jsx";
 import { HomeSEO, ScholarsSEO, CoursesSEO, AboutSEO, LoginSEO, LibrarySEO } from "./components/SEO";
+
+import { SupportPage } from './pages/operations/Workspace';
 
 function App() {
   const location = useLocation();
@@ -109,7 +112,8 @@ function App() {
             }
           />
 
-          <Route path="/admin-dashboard" element={<AdminDashboard />} />
+          <Route path="/admin-dashboard" element={<ProtectedRoute roles={["Admin", "SuperAdmin"]}><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/support" element={<ProtectedRoute roles={["Learner", "Scholar", "Admin", "SuperAdmin"]}><SupportPage /></ProtectedRoute>} />
           <Route 
             path="/superadmin-dashboard" 
             element={
@@ -119,12 +123,13 @@ function App() {
             } 
           />
           <Route path="/become-scholar" element={<><BecomeScholar /><Footer /></>} />
-          <Route path="/create-course" element={<NewCourse />} />
+          <Route path="/create-course" element={<ProtectedRoute roles={["Scholar"]}><NewCourse /></ProtectedRoute>} />
+          <Route path="/manage-course/:subjectId" element={<ProtectedRoute roles={["Scholar"]}><ManageCourse /></ProtectedRoute>} />
           <Route path="register" element={<><RegisterPage /><Footer /></>} />
           <Route path="/all-videos" element={<><VideoPlaylist /><Footer /></>} />
           <Route path="/my-library" element={<><LibrarySEO /><MyLibrary /><Footer /></>} />
-          <Route path="/course/:subjectId/:scholarId" element={<><CourseDetail /><Footer /></>} />
-          <Route path="/course/:subjectId" element={<><CourseDetail /><Footer /></>} />
+          <Route path="/course/:subjectId/:scholarId" element={<><ProtectedRoute roles={["Learner", "Scholar", "Admin", "SuperAdmin"]}><CourseDetail /></ProtectedRoute><Footer /></>} />
+          <Route path="/course/:subjectId" element={<><ProtectedRoute roles={["Learner", "Scholar", "Admin", "SuperAdmin"]}><CourseDetail /></ProtectedRoute><Footer /></>} />
           <Route path="/watch/:id" element={<WatchVideo />} />
         </Routes>
       </div>

@@ -34,12 +34,8 @@ function LoginPage() {
     if (roles.includes("Admin"))
       return navigate("/admin-dashboard");
 
-    // Scholars always go to scholar dashboard, even if they have Learner role
-    if (roles.includes("Scholar"))
-      return navigate("/scholar-dashboard");
-
-    // Regular learners go to learner dashboard
-    if (roles.includes("Learner"))
+    // Learning is the default landing page for learners and scholars.
+    if (roles.includes("Learner") || roles.includes("Scholar"))
       return navigate("/dashboard");
 
     return navigate("/");

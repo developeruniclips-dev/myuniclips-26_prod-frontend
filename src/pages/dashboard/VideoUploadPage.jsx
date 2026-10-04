@@ -1,15 +1,19 @@
 // src/pages/dashboard/VideoUploadPage.jsx
 import { useState, useEffect } from "react";
 import { useAuth } from "../../context/temp";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import { Card, Form, Button, Spinner, Alert, Container, Badge } from "react-bootstrap";
 import ScholarTermsModal from "../../components/terms/ScholarTermsModal";
 
-const MAX_VIDEOS_PER_SUBJECT = 10;
+import VideoMetadataFields, { metadataError } from './components/VideoMetadataFields';
+import useCourseLimits from './components/useCourseLimits';
+import './scholarDashboard.css';
 
 function VideoUploadPage() {
   const { user } = useAuth();
+  const limits = useCourseLimits();
+  const MAX_VIDEOS_PER_SUBJECT = limits?.maxVideos;
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -20,6 +24,8 @@ function VideoUploadPage() {
   const [sequenceIndex, setSequenceIndex] = useState("1");
   const [subjectId, setSubjectId] = useState("");
   const [subjects, setSubjects] = useState([]);
+  const [loadingSubjects, setLoadingSubjects] = useState(true);
+  const [videosLoaded, setVideosLoaded] = useState(false);
   const [videoCounts, setVideoCounts] = useState({});
   const [maxSequences, setMaxSequences] = useState({});
   const [error, setError] = useState("");
@@ -59,6 +65,7 @@ function VideoUploadPage() {
           maxSequences[video.subject_id] = Math.max(maxSequences[video.subject_id] || 0, seq);
         });
         setVideoCounts(counts);
+        setVideosLoaded(true);
         setMaxSequences(maxSequences);
         
         // Set initial sequence for the first subject
@@ -67,7 +74,9 @@ function VideoUploadPage() {
           setSequenceIndex(String((maxSequences[initialSubjectId] || 0) + 1));
         }
       } catch (err) {
-        console.error("Error fetching subjects:", err);
+        setError(err.response?.data?.message || 'Unable to load your course content. Please refresh before uploading.');
+      } finally {
+        setLoadingSubjects(false);
       }
     };
 
@@ -83,6 +92,7 @@ function VideoUploadPage() {
   }, [subjectId, maxSequences]);
 
   const handleFileChange = (e) => {
+    setFile(null);
     const selectedFile = e.target.files[0];
     if (selectedFile) {
       // Check file type
@@ -90,9 +100,9 @@ function VideoUploadPage() {
         setError('Please select a video file');
         return;
       }
-      // Check file size (max 800MB)
-      if (selectedFile.size > 800 * 1024 * 1024) {
-        setError('File size must be less than 800MB');
+      // Use the same server-provided limit as backend validation
+      if (!limits || selectedFile.size > limits.maxVideoBytes) {
+        setError('File size must be no larger than 1 GB');
         return;
       }
       setFile(selectedFile);
@@ -123,6 +133,12 @@ function VideoUploadPage() {
       return;
     }
 
+    if (!limits || !videosLoaded || (videoCounts[subjectId] || 0) >= limits.maxVideos) {
+      setError('Upload limits or course content are unavailable, or this course is full. Please refresh.');
+      return;
+    }
+    const textError = metadataError(title, description, limits);
+    if (textError) { setError(textError); return; }
     setUploading(true);
     setError("");
 
@@ -147,7 +163,7 @@ function VideoUploadPage() {
 
       setUploading(false);
       alert("Video uploaded successfully!");
-      navigate("/scholar-dashboard");
+      navigate(`/manage-course/${subjectId}`);
     } catch (err) {
       console.error(err);
       setUploading(false);
@@ -155,15 +171,21 @@ function VideoUploadPage() {
     }
   };
 
+  if (loadingSubjects) return <Container className="py-5 scholar-management"><Link to="/scholar-dashboard" className="btn btn-outline-primary mb-3">Scholar Dashboard</Link><p role="status">Loading your courses…</p></Container>;
+
   if (subjects.length === 0) {
     return (
-      <Container className="py-5" style={{ maxWidth: "700px" }}>
-        <Card className="border-0 shadow-sm p-4">
+      <Container className="py-5 scholar-management" style={{ maxWidth: "700px" }}>
+        <Link to="/scholar-dashboard" className="btn btn-outline-primary mb-3">&larr; Scholar Dashboard</Link>
+      {subjectId && <Link to={`/manage-course/${subjectId}`} className="btn btn-outline-primary mb-3 ms-2">Manage Course</Link>}
+      {!limits && <Alert variant="warning">Loading upload limits. If this persists, refresh before uploading.</Alert>}
+      <Card className="border-0 shadow-sm p-4">
           <Alert variant="warning">
+            {error && <p role="alert">{error}</p>}
             <Alert.Heading>No Approved Subjects</Alert.Heading>
             <p>You need to have at least one approved subject before uploading videos.</p>
-            <Button variant="primary" onClick={() => navigate("/become-scholar")}>
-              Apply to Become a Scholar
+            <Button variant="primary" onClick={() => navigate("/create-course")}>
+              Teach a New Course
             </Button>
           </Alert>
         </Card>
@@ -172,9 +194,12 @@ function VideoUploadPage() {
   }
 
   return (
-    <Container className="py-5" style={{ maxWidth: "700px" }}>
+    <Container className="py-5 scholar-management" style={{ maxWidth: "700px" }}>
+      <Link to="/scholar-dashboard" className="btn btn-outline-primary mb-3">&larr; Scholar Dashboard</Link>
+      {subjectId && <Link to={`/manage-course/${subjectId}`} className="btn btn-outline-primary mb-3 ms-2">Manage Course</Link>}
+      {!limits && <Alert variant="warning">Unable to load upload limits yet. Please refresh before uploading.</Alert>}
       <Card className="border-0 shadow-sm">
-        <Card.Body className="p-5">
+        <Card.Body className="p-3 p-sm-4">
           <h3 className="fw-bold mb-2 text-center">Upload New Course Video</h3>
           <p className="text-muted text-center mb-4">Share your knowledge with students</p>
 
@@ -197,7 +222,7 @@ function VideoUploadPage() {
                 </div>
               )}
               <Form.Text className="text-muted">
-                Max file size: 800MB. Supported formats: MP4, AVI, MOV, WMV
+                Max file size: 1 GB. Supported formats: MP4, AVI, MOV, WMV
               </Form.Text>
             </Form.Group>
 
@@ -210,20 +235,20 @@ function VideoUploadPage() {
                 className="py-2"
               >
                 {subjects.map((subject) => {
-                  const count = videoCounts[subject.subject_id] || 0;
-                  const remaining = MAX_VIDEOS_PER_SUBJECT - count;
+                  const count = videosLoaded ? (videoCounts[subject.subject_id] || 0) : null;
+                  const remaining = limits && videosLoaded ? MAX_VIDEOS_PER_SUBJECT - count : 0;
                   return (
                     <option
                       key={subject.id}
                       value={subject.subject_id}
                       disabled={remaining <= 0}
                     >
-                      {subject.subject_name} - {subject.degree} ({count}/{MAX_VIDEOS_PER_SUBJECT} videos)
+                      {subject.subject_name} - {subject.degree} ({count ?? '...'}/{MAX_VIDEOS_PER_SUBJECT ?? '...'} videos)
                     </option>
                   );
                 })}
               </Form.Select>
-              {subjectId && (
+              {subjectId && limits && videosLoaded && (
                 <div className="mt-2">
                   {(videoCounts[subjectId] || 0) >= MAX_VIDEOS_PER_SUBJECT ? (
                     <Badge bg="danger">
@@ -240,30 +265,7 @@ function VideoUploadPage() {
               )}
             </Form.Group>
 
-            <Form.Group className="mb-4">
-              <Form.Label className="fw-semibold">Video Title <span className="text-danger">*</span></Form.Label>
-              <Form.Control
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g., Introduction to JavaScript - Part 1"
-                required
-                className="py-2"
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-4">
-              <Form.Label className="fw-semibold">Description <span className="text-danger">*</span></Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={4}
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Describe what students will learn in this video..."
-                required
-                className="py-2"
-              />
-            </Form.Group>
+            <VideoMetadataFields title={title} description={description} onTitleChange={setTitle} onDescriptionChange={setDescription} limits={limits} />
 
             <Form.Group className="mb-4">
               <Form.Label className="fw-semibold">Sequence Number <span className="text-danger">*</span></Form.Label>
@@ -276,7 +278,7 @@ function VideoUploadPage() {
                 style={{ cursor: 'not-allowed' }}
               />
               <Form.Text className="text-muted">
-                Auto-calculated based on existing videos. First video (sequence 1) is always free.
+                Added after existing lessons. You can reorder lessons in Manage Course before approval. Lesson 1 is always free.
               </Form.Text>
             </Form.Group>
 
@@ -311,7 +313,7 @@ function VideoUploadPage() {
                 type="submit" 
                 variant="primary" 
                 size="lg"
-                disabled={uploading || !termsAccepted}
+                disabled={uploading || !termsAccepted || !limits || !videosLoaded || !file || (videoCounts[subjectId] || 0) >= MAX_VIDEOS_PER_SUBJECT}
                 className="py-3 fw-semibold"
                 style={{ borderRadius: '10px' }}
               >

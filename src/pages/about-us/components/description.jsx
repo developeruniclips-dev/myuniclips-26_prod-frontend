@@ -14,7 +14,7 @@ function Description() {
                     <strong>UniClips</strong> is an EdTech platform delivering
                     short, class-focused video courses aligned with local university syllabi. <br /><br />
                     We tackle the problem of generalized learning by empowering proven
-                    scholars — students who have mastered the course — to create
+                    scholars, students who have mastered the course, to create
                     high-quality, on-demand content for their peers. <br /><br />
                     Our mission is to make learning <strong>easier, more local, and more affordable</strong>.
                     </p>

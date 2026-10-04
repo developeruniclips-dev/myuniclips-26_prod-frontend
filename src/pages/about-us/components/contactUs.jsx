@@ -31,25 +31,6 @@ function ContactUs() {
                     </Card>
                 </Col>
 
-                {/* IT Dev */}
-                <Col md={5} className="mb-4">
-                    <Card className="shadow-sm contact-card p-3 border-0 h-100">
-                    <Card.Body>
-                        <Users className="icon mb-3 text-primary" size={32} />
-                        <h5 className="fw-semibold">Anushika Nallahandi</h5>
-                        <p className="text-muted mb-1">IT Developer</p>
-                        <p className="mb-0">
-                        <Mail className="me-2 text-secondary" size={18} />
-                        <a
-                            href="mailto:info@myuniclips.com"
-                            className="contact-link"
-                        >
-                            info@myuniclips.com
-                        </a>
-                        </p>
-                    </Card.Body>
-                    </Card>
-                </Col>
                 </Row>
 
                 <Row>
@@ -65,10 +46,6 @@ function ContactUs() {
                     >
                         Kaartokatu 2, 11100 Riihimäki, Finland
                     </a>
-                    </p>
-                    <p>
-                    <strong>Phone:</strong>{" "}
-                    <a href="tel:+358451723342" className="text-decoration-none">+358 45 1723342</a>
                     </p>
                 </Col>
                 </Row>

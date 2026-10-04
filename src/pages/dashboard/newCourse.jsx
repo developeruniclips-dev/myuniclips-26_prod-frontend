@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { Card, Form, Button, Modal } from "react-bootstrap";
 import { useAuth } from "../../context/temp"; // your auth context
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import './scholarDashboard.css';
 
 function NewCourse() {
   const { user } = useAuth();
@@ -11,7 +12,7 @@ function NewCourse() {
   const [expertise, setExpertise] = useState("");
   const [degree, setDegree] = useState("");
   const [subject, setSubject] = useState("");
-  const [subjectsList, setSubjectsList] = useState([]);
+
   const [filteredSubjects, setFilteredSubjects] = useState([]);
   const [scholarProfile, setScholarProfile] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -36,30 +37,15 @@ function NewCourse() {
     if (user) fetchProfile();
   }, [user]);
 
-  // Fetch all subjects
   useEffect(() => {
-    const fetchSubjects = async () => {
-      try {
-        const res = await axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/subjects`);
-        setSubjectsList(res.data);
-      } catch (err) {
-        console.error(err);
-      }
-    };
-    fetchSubjects();
-  }, []);
-
-  // Filter subjects based on selected degree program
-  useEffect(() => {
-    if (degree && subjectsList.length > 0) {
-      const filtered = subjectsList.filter(s => 
-        s.degree_programmes?.toLowerCase() === degree.toLowerCase()
-      );
-      setFilteredSubjects(filtered);
-    } else {
-      setFilteredSubjects([]);
-    }
-  }, [degree, subjectsList]);
+    if (!user?.token) return;
+    let active = true;
+    axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/scholar-subjects/available`,
+      { headers: { Authorization: `Bearer ${user.token}` } })
+      .then(res => { if (active) setFilteredSubjects(res.data.subjects); })
+      .catch(error => { if (active) { setModalMessage(error.response?.data?.message || 'Unable to load your programme courses'); setShowModal(true); } });
+    return () => { active = false; };
+  }, [user?.token]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -106,7 +92,8 @@ function NewCourse() {
   };
 
   return (
-    <div className="container py-5" style={{ maxWidth: "700px" }}>
+    <div className="container py-5 scholar-management" style={{ maxWidth: "700px" }}>
+      <Link to="/scholar-dashboard" className="btn btn-outline-primary mb-3">&larr; Scholar Dashboard</Link>
       <Card className="p-4 border-0 shadow rounded-4">
         <h3 className="fw-bold text-center mb-4">Apply to Teach a Subject</h3>
         
@@ -124,15 +111,15 @@ function NewCourse() {
             <Form.Control
               type="text"
               value={degree}
-              onChange={(e) => setDegree(e.target.value)}
+              
               placeholder="e.g., Computer Applications"
               required
-              disabled={scholarProfile?.degree}
+              readOnly
             />
             <Form.Text className="text-muted">
               {scholarProfile?.degree ? 
                 "This is from your scholar profile" : 
-                "Enter your exact degree program name"
+                "Available after your scholar profile is approved"
               }
             </Form.Text>
           </Form.Group>
@@ -146,13 +133,13 @@ function NewCourse() {
               disabled={!degree || filteredSubjects.length === 0}
             >
               <option value="">
-                {!degree ? "Enter degree program first" : 
+                {!degree ? "Waiting for approved scholar profile" : 
                  filteredSubjects.length === 0 ? "No subjects found for this program" :
                  "Select Subject"}
               </option>
               {filteredSubjects.map((subj) => (
                 <option key={subj.id} value={subj.id}>
-                  {subj.name} - {subj.description}
+                  {subj.name}
                 </option>
               ))}
             </Form.Select>

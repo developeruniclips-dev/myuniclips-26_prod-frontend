@@ -21,16 +21,6 @@ function ScholarDashboard() {
         return null;
     }
 
-    return(
-        <>
-            {/* <ScholarNavBar /> */}
-            <div className="scholar-dashboard-page">
-                <div className="dashboard-scroll">
-                    <ScholarTabs />
-                </div>
-            </div>
-        </>
-    )
+    return <div className="scholar-workspace"><ScholarTabs /></div>;
 }
-
 export default ScholarDashboard;

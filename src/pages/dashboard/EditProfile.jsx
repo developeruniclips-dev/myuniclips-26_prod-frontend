@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { Container, Card, Form, Button, Row, Col, Alert, Image } from "react-bootstrap";
+import { Container, Card, Form, Button, Row, Col, Alert } from "react-bootstrap";
 import { useAuth } from "../../context/temp";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import LearnerAvatar, { AVATARS } from './components/LearnerAvatar';
+import './learnerDashboard.css';
 
 function EditProfile() {
   const { user, updateUser } = useAuth();
@@ -15,9 +17,16 @@ function EditProfile() {
     favoriteSubject: "",
     favoriteFood: "",
     hobbies: "",
+    avatarId: "avatar_01",
+    universityId: "",
+    degreeProgramme: "",
   });
-  const [profileImage, setProfileImage] = useState(null);
-  const [profileImagePreview, setProfileImagePreview] = useState(null);
+  const [universities, setUniversities] = useState([]);
+  const [programmes, setProgrammes] = useState([]);
+  const [profileLoaded, setProfileLoaded] = useState(false);
+  const [preferencesAvailable, setPreferencesAvailable] = useState(false);
+  const [locationsError, setLocationsError] = useState('');
+  const [programmesLoading, setProgrammesLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
   const [isScholar, setIsScholar] = useState(false);
@@ -38,6 +47,7 @@ function EditProfile() {
         );
         
         const profile = res.data;
+        setPreferencesAvailable(['avatar_id', 'university_id', 'degree_programme'].every(key => Object.prototype.hasOwnProperty.call(profile, key)));
         setFormData({
           fname: profile.fname || "",
           lname: profile.lname || "",
@@ -46,6 +56,9 @@ function EditProfile() {
           favoriteSubject: profile.favorite_subject || "",
           favoriteFood: profile.favorite_food || "",
           hobbies: profile.hobbies || "",
+          avatarId: profile.avatar_id || 'avatar_01',
+          universityId: profile.university_id ? String(profile.university_id) : '',
+          degreeProgramme: profile.degree_programme || '', 
         });
         setCharCounts({
           bio: (profile.bio || "").length,
@@ -53,10 +66,9 @@ function EditProfile() {
           favoriteFood: (profile.favorite_food || "").length,
           hobbies: (profile.hobbies || "").length
         });
-        setProfileImagePreview(profile.profile_image_url || null);
+        setProfileLoaded(true);
         setIsScholar(profile.roles?.includes("Scholar"));
       } catch (err) {
-        console.error("Error fetching profile:", err);
         setMessage({ type: "danger", text: "Failed to load profile" });
       }
     };
@@ -64,7 +76,27 @@ function EditProfile() {
     if (user?.token) {
       fetchProfile();
     }
-  }, [user]);
+  }, [user?.token]);
+
+  useEffect(() => {
+    let cancelled = false;
+    axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/locations/universities?available=1`)
+      .then(res => { if (!cancelled) setUniversities(res.data); })
+      .catch(() => { if (!cancelled) setLocationsError('Universities could not be loaded. Please reload to try again.'); });
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    setProgrammes([]);
+    if (!formData.universityId) { setProgrammesLoading(false); return; }
+    setProgrammesLoading(true);
+    axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/locations/programs/by-university/${formData.universityId}`)
+      .then(res => { if (!cancelled) setProgrammes(res.data); })
+      .catch(() => { if (!cancelled) setLocationsError('Degree programmes could not be loaded. Please reload to try again.'); })
+      .finally(() => { if (!cancelled) setProgrammesLoading(false); });
+    return () => { cancelled = true; };
+  }, [formData.universityId]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -112,20 +144,6 @@ function EditProfile() {
     }
   };
 
-  const handleProfileImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        setMessage({ type: "warning", text: "Profile image must be less than 5MB" });
-        return;
-      }
-      setProfileImage(file);
-      setProfileImagePreview(URL.createObjectURL(file));
-    }
-  };
-
-
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -139,22 +157,14 @@ function EditProfile() {
     setMessage({ type: "", text: "" });
 
     try {
-      const data = new FormData();
-      Object.keys(formData).forEach(key => {
-        data.append(key, formData[key]);
-      });
-      
-      if (profileImage) {
-        data.append("profileImage", profileImage);
-      }
-
-      const res = await axios.put(
+      const { avatarId, universityId, degreeProgramme, ...basicProfile } = formData;
+      await axios.put(
         `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/users/profile`,
-        data,
+        preferencesAvailable ? formData : basicProfile,
         { 
           headers: { 
             Authorization: `Bearer ${user.token}`,
-            "Content-Type": "multipart/form-data"
+            "Content-Type": "application/json"
           } 
         }
       );
@@ -168,19 +178,14 @@ function EditProfile() {
         email: formData.email,
       });
       
-      // Clear file input
-      setProfileImage(null);
       
-      // Scroll to top to show success message
-      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
-      console.error("Error updating profile:", err);
       
       if (err.response?.data?.errors) {
         // Handle validation errors from backend
         const errors = {};
         err.response.data.errors.forEach(error => {
-          errors[error.param] = error.msg;
+          errors[error.path || error.param] = error.msg;
         });
         setValidationErrors(errors);
         setMessage({ type: "danger", text: "Please fix the highlighted errors" });
@@ -192,11 +197,12 @@ function EditProfile() {
       }
     } finally {
       setLoading(false);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
   return (
-    <Container className="my-5" style={{ maxWidth: "800px" }}>
+    <Container className="my-5 learner-profile" style={{ maxWidth: "800px" }}>
       <Card className="shadow-sm border-0">
         <Card.Header className="bg-primary text-white">
           <h3 className="mb-0">
@@ -212,42 +218,40 @@ function EditProfile() {
           )}
 
           <Form onSubmit={handleSubmit}>
-            {/* Profile Image Section */}
-            <div className="text-center mb-4">
-              <div className="mb-3">
-                {profileImagePreview ? (
-                  <Image 
-                    src={profileImagePreview} 
-                    roundedCircle 
-                    width={120} 
-                    height={120}
-                    style={{ objectFit: 'cover', border: '4px solid #6366f1' }}
-                  />
-                ) : (
-                  <div 
-                    className="rounded-circle bg-primary bg-opacity-10 d-inline-flex align-items-center justify-content-center"
-                    style={{ width: '120px', height: '120px' }}
-                  >
-                    <i className="bi bi-person-circle fs-1 text-primary"></i>
-                  </div>
-                )}
+            {profileLoaded && !preferencesAvailable && <Alert variant="info">Avatar and study preferences are not enabled yet. Your current avatar will stay unchanged. You can still update your other profile details.</Alert>}
+            <fieldset className="text-center mb-4" disabled={!profileLoaded || loading || !preferencesAvailable}>
+              <legend className="h5 fw-bold">Choose Avatar</legend>
+              <LearnerAvatar id={formData.avatarId} size={88} />
+              <div className="avatar-options">
+                {AVATARS.map(([id], index) => <button key={id} type="button" className="avatar-option" aria-label={`Avatar ${index + 1}`} aria-pressed={formData.avatarId === id} onClick={() => setFormData(previous => ({ ...previous, avatarId: id }))}><LearnerAvatar id={id} size={56} /></button>)}
               </div>
-              <Form.Group>
-                <Form.Label className="btn btn-outline-primary btn-sm">
-                  <i className="bi bi-camera me-2"></i>
-                  Change Profile Picture
-                  <Form.Control
-                    type="file"
-                    accept="image/*"
-                    onChange={handleProfileImageChange}
-                    hidden
-                  />
-                </Form.Label>
-                <Form.Text className="d-block text-muted mt-2">
-                  JPG, PNG or GIF, max 5MB
-                </Form.Text>
-              </Form.Group>
-            </div>
+              <p className="small text-muted mb-0">Pick a look that feels like you.</p>
+            </fieldset>
+
+            <h5 className="fw-bold mb-3 text-primary">University &amp; Degree Programme</h5>
+            {locationsError && <Alert variant="warning">{locationsError}</Alert>}
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3" controlId="profile-university">
+                  <Form.Label>University</Form.Label>
+                  <Form.Select value={formData.universityId} disabled={!profileLoaded || !preferencesAvailable || !universities.length} onChange={event => setFormData(previous => ({ ...previous, universityId: event.target.value, degreeProgramme: '' }))}>
+                    <option value="">Choose your university</option>
+                    {universities.map(item => <option key={item.id} value={item.id}>{item.name}{item.short_name ? ` (${item.short_name})` : ''}</option>)}
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-3" controlId="profile-programme">
+                  <Form.Label>Degree Programme</Form.Label>
+                  <Form.Select name="degreeProgramme" value={formData.degreeProgramme} onChange={handleChange} disabled={!preferencesAvailable || !formData.universityId || programmesLoading || !programmes.length}>
+                    <option value="">{programmesLoading ? 'Loading programmes?' : 'Choose your programme'}</option>
+                    {formData.degreeProgramme && !programmes.some(item => item.program === formData.degreeProgramme) && <option value={formData.degreeProgramme}>{formData.degreeProgramme}</option>}
+                    {programmes.map(item => <option key={item.program} value={item.program}>{item.program}</option>)}
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+            </Row>
+            <p className="small text-muted">We use your study details to help you discover relevant courses.</p>
 
             <hr className="my-4" />
 
@@ -392,8 +396,8 @@ function EditProfile() {
 
 
 
-            <div className="d-flex gap-3 justify-content-between">
-              <div className="d-flex gap-2">
+            <div className="d-flex flex-wrap gap-3 justify-content-between">
+              <div className="d-flex flex-wrap gap-2">
                 <Button 
                   variant="outline-primary"
                   onClick={() => navigate('/dashboard')}
@@ -412,7 +416,7 @@ function EditProfile() {
                 )}
               </div>
               
-              <div className="d-flex gap-2">
+              <div className="d-flex flex-wrap gap-2">
                 <Button 
                   variant="outline-secondary"
                   onClick={() => window.history.back()}
@@ -422,7 +426,7 @@ function EditProfile() {
                 <Button 
                   variant="primary" 
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || !profileLoaded || programmesLoading}
                 >
                   {loading ? (
                     <>

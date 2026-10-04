@@ -5,6 +5,7 @@ import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/temp";
 import './featuredCourses.css';
+import { classificationFields, courseCategoryLabel } from '../../utils/courseClassification.mjs';
 
 // Helper function to extract Vimeo video ID from URL
 const getVimeoId = (url) => {
@@ -42,8 +43,9 @@ function FeaturedCourses() {
               subject_name: video.subject_name,
               scholar_fname: video.scholar_fname,
               scholar_lname: video.scholar_lname,
-              university: video.university,
-              degree: video.degree,
+              university: video.scholar_university || video.university_label || video.university,
+              degree: video.degree_programme || video.degree,
+              ...classificationFields(video),
               firstVideo: video,
               videoCount: 1,
               description: video.description
@@ -129,7 +131,7 @@ function FeaturedCourses() {
               </div>
               <Card.Body className="d-flex flex-column">
                 <Badge bg="light" text="dark" className="mb-2 align-self-start">
-                  {course.degree || 'Course'}
+                  {courseCategoryLabel(course, course.degree || 'Course')}
                 </Badge>
                 <Card.Title className="mb-2 fw-bold" style={{ fontSize: '1.1rem' }}>
                   {course.subject_name}

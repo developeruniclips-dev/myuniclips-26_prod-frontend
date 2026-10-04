@@ -3,6 +3,7 @@ import { Container, Row, Col, Card, Button, Badge, ProgressBar, Alert } from "re
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/temp";
 import axios from "axios";
+import { courseCategoryLabel } from '../utils/courseClassification.mjs';
 
 // Helper function to extract Vimeo video ID from URL
 const getVimeoId = (url) => {
@@ -178,7 +179,7 @@ function MyLibrary() {
                   <div className="mb-2">
                     <small className="text-muted">
                       <i className="bi bi-mortarboard me-1"></i>
-                      {course.degree_programmes || 'General Studies'}
+                      {courseCategoryLabel(course, course.degree_programmes || 'General Studies')}
                     </small>
                   </div>
 
