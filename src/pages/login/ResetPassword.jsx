@@ -32,8 +32,8 @@ function ResetPassword() {
             return;
         }
 
-        if (newPassword.length < 6) {
-            setError("Password must be at least 6 characters");
+        if (newPassword.length < 8 || newPassword.length > 256 || !/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword) || !/[0-9]/.test(newPassword) || !/[!@#$%^&*(),.?":{}|<>]/.test(newPassword)) {
+            setError("Use 8–256 characters with uppercase, lowercase, a number and a special character");
             return;
         }
 
@@ -127,7 +127,8 @@ function ResetPassword() {
                                                     value={newPassword}
                                                     onChange={(e) => setNewPassword(e.target.value)}
                                                     required
-                                                    minLength={6}
+                                                    minLength={8}
+                                                    maxLength={256}
                                                     className="py-3"
                                                 />
                                             </Form.Group>
@@ -140,7 +141,8 @@ function ResetPassword() {
                                                     value={confirmPassword}
                                                     onChange={(e) => setConfirmPassword(e.target.value)}
                                                     required
-                                                    minLength={6}
+                                                    minLength={8}
+                                                    maxLength={256}
                                                     className="py-3"
                                                 />
                                             </Form.Group>

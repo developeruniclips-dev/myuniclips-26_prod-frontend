@@ -1,133 +1,57 @@
-// src/context/temp.jsx
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import axios from "axios";
-import { setupAxiosInterceptor } from "../utils/axiosInterceptor";
-
-export const AuthContext = createContext();
-
-// Helper to check if token is expired
-const isTokenExpired = (token) => {
-  if (!token) return true;
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    // Check if token expires in less than 5 minutes
-    return payload.exp * 1000 < Date.now() + 5 * 60 * 1000;
-  } catch {
-    return true;
-  }
-};
-
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(() => {
-    // Initialize user from sessionStorage (clears when browser closes)
-    const savedUser = sessionStorage.getItem('user');
-    if (savedUser) {
-      const parsed = JSON.parse(savedUser);
-      // Check if token is still valid
-      if (parsed?.token && !isTokenExpired(parsed.token)) {
-        return parsed;
-      }
-      // Clear expired token
-      sessionStorage.removeItem('user');
-    }
-    // Also clear any old localStorage data
-    localStorage.removeItem('user');
-    return null;
-  });
-  const [loading, setLoading] = useState(false);
-
-  // Check token validity on mount and periodically
-  useEffect(() => {
-    const checkToken = () => {
-      if (user?.token && isTokenExpired(user.token)) {
-        console.log("Token expired, logging out");
-        logout();
-        window.location.href = "/";
-      }
-    };
-
-    // Check immediately
-    checkToken();
-
-    // Check every minute
-    const interval = setInterval(checkToken, 60000);
-    return () => clearInterval(interval);
-  }, [user?.token]);
-
-  // Save user to sessionStorage whenever it changes
-  useEffect(() => {
-    if (user) {
-      sessionStorage.setItem('user', JSON.stringify(user));
-    } else {
-      sessionStorage.removeItem('user');
-    }
-  }, [user]);
-
-  const login = async (email, password) => {
-    setLoading(true);
-    try {
-      const res = await axios.post(`${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/auth/login`, {
-        email,
-        password,
-      });
-
-      const userData = {
-        ...res.data.user,
-        roles: res.data.roles,
-        token: res.data.token,
-      };
-
-      setUser(userData);
-
-      setLoading(false);
-      return { ok: true, user: { ...res.data.user, roles: res.data.roles } };
-    } catch (err) {
-      setLoading(false);
-      const status = err.response?.status;
-      const serverMsg = err.response?.data?.message || err.response?.data?.error;
-
-      // Map HTTP status codes to user-friendly messages
-      let friendlyMessage;
-      if (serverMsg) {
-        friendlyMessage = serverMsg;
-      } else if (status === 429) {
-        friendlyMessage = "Too many login attempts. Please wait a few minutes and try again.";
-      } else if (status === 401) {
-        friendlyMessage = "Incorrect email or password. Please try again.";
-      } else if (status === 403) {
-        friendlyMessage = "Your account has been locked. Please contact support or reset your password.";
-      } else if (status === 500) {
-        friendlyMessage = "Something went wrong on our end. Please try again later.";
-      } else if (!err.response) {
-        friendlyMessage = "Unable to connect to the server. Please check your internet connection.";
-      } else {
-        friendlyMessage = "An unexpected error occurred. Please try again.";
-      }
-
-      return { ok: false, message: friendlyMessage };
-    }
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import axios from 'axios';
+import { setupAxiosInterceptor } from '../utils/axiosInterceptor';
+import { createAuthSession, secondsRemaining } from '../utils/authSession.mjs';
+export const AuthContext=createContext();
+const base=import.meta.env.VITE_API_URL||'http://localhost:3001/api';
+const stored=()=>{try{const value=JSON.parse(sessionStorage.getItem('user'));return value?.token&&(secondsRemaining(value.token)>0||value.refreshToken)?value:null;}catch{return null;}};
+export const AuthProvider=({children})=>{
+ const [user,setUser]=useState(stored),[loading,setLoading]=useState(false),[sessionError,setSessionError]=useState(null);
+ const current=useRef(user);current.current=user;
+ const write=useCallback(value=>{current.current=value;setUser(value);if(value)sessionStorage.setItem('user',JSON.stringify(value));else sessionStorage.removeItem('user');localStorage.removeItem('user');},[]);
+ const clear=useCallback(()=>write(null),[write]);
+ const client=useRef(null);
+ if(!client.current)client.current=createAuthSession({read:()=>current.current,write,clear,request:async(path,body,token)=>{
+  const response=await axios.post(base+path,body,{skipSessionHandling:true,...(token?{headers:{Authorization:`Bearer ${token}`}}:{})});return response.data;
+ }});
+ const login=async(email,password)=>{
+  setLoading(true);setSessionError(null);
+  try{
+   const {data}=await axios.post(base+'/auth/login',{email,password},{skipSessionHandling:true});
+   if(data.requires2FA)return{ok:false,requires2FA:true,challengeToken:data.challengeToken,message:data.message};
+   const value=client.current.store(data);return{ok:true,user:value};
+  }catch(error){return{ok:false,message:error.response?.data?.message||error.response?.data?.error||'Unable to sign in. Please try again.'};}
+  finally{setLoading(false);}
+ };
+ const completeTwoFactor=async(challengeToken,code)=>{
+  setLoading(true);
+  try{
+   const proof=/^\d{6}$/.test(code)?{token:code}:{backupCode:code.trim()};
+   const {data}=await axios.post(base+'/2fa/validate',{challengeToken,...proof},{skipSessionHandling:true});
+   return{ok:true,user:client.current.store(data)};
+  }catch(error){return{ok:false,message:error.response?.data?.message||'Unable to verify. Start sign-in again if your challenge expired.'};}
+  finally{setLoading(false);}
+ };
+ const refresh=useCallback(()=>client.current.refresh(),[]);
+ const logout=useCallback(async()=>{
+  try{await client.current.logout();setSessionError(null);return true;}
+  catch{setSessionError('Unable to revoke your session. Please retry sign out when connected.');return false;}
+ },[]);
+ useEffect(()=>setupAxiosInterceptor(clear,refresh,()=>current.current),[clear,refresh]);
+ useEffect(()=>{
+  let busy=false;
+  const check=async()=>{
+   if(busy||!current.current?.token||secondsRemaining(current.current.token)>300)return;
+   if(!current.current.refreshToken){clear();return;}
+   busy=true;
+   try{await refresh();setSessionError(null);}catch(error){
+    if(error.response?.status===401)clear();
+    else setSessionError('Session renewal is temporarily unavailable. Please retry.');
+   }finally{busy=false;}
   };
-
-  const logout = useCallback(() => {
-    setUser(null);
-    sessionStorage.removeItem('user');
-    localStorage.removeItem('user'); // Also clear any old localStorage data
-  }, []);
-
-  // Setup axios interceptor to auto-logout on 401 responses
-  useEffect(() => {
-    setupAxiosInterceptor(logout);
-  }, [logout]);
-
-  const updateUser = (updatedFields) => {
-    setUser(prev => prev ? { ...prev, ...updatedFields } : prev);
-  };
-
-  return (
-    <AuthContext.Provider value={{ user, login, logout, updateUser, loading }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  check();const timer=setInterval(check,60000);return()=>clearInterval(timer);
+ },[clear,refresh]);
+ const updateUser=updatedFields=>write(current.current?{...current.current,...updatedFields}:null);
+ return <AuthContext.Provider value={{user,login,completeTwoFactor,logout,updateUser,loading,sessionError}}>{sessionError&&<div role="alert" className="alert alert-warning">{sessionError}</div>}{children}</AuthContext.Provider>;
 };
-
-export const useAuth = () => useContext(AuthContext);
+export const useAuth=()=>useContext(AuthContext);

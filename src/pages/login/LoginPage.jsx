@@ -5,19 +5,25 @@ import { useAuth } from "../../context/temp";
 import { useNavigate, Link } from "react-router-dom";
 
 function LoginPage() {
-  const { login, loading } = useAuth();
+  const { login, completeTwoFactor, loading } = useAuth();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(null);
+  const [challenge, setChallenge] = useState(null);
+  const [verificationCode, setVerificationCode] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
     
-    const result = await login(email, password);
+    const result = challenge ? await completeTwoFactor(challenge, verificationCode) : await login(email, password);
+    if (result.requires2FA) {
+      if (!result.challengeToken) { setError('Refresh this page and sign in again after the authentication update.'); return; }
+      setChallenge(result.challengeToken); setPassword(''); return;
+    }
 
     if (!result.ok) {
       setError(result.message);
@@ -102,7 +108,7 @@ function LoginPage() {
                     )}
 
                     <Form onSubmit={handleSubmit} autoComplete="off">
-                      <Form.Group className="mb-3">
+                      {!challenge && <><Form.Group className="mb-3">
                         <Form.Label className="fw-semibold">Email / Username</Form.Label>
                         <Form.Control
                           type="text"
@@ -145,6 +151,12 @@ function LoginPage() {
                         </div>
                       </Form.Group>
 
+                      </>}
+                      {challenge && <Form.Group className="mb-3">
+                        <Form.Label>Authenticator or recovery code</Form.Label>
+                        <Form.Control value={verificationCode} onChange={e => setVerificationCode(e.target.value)} autoComplete="one-time-code" maxLength={39} required />
+                        <Button type="button" variant="link" onClick={() => { setChallenge(null); setVerificationCode(''); setError(null); }}>Start sign-in again</Button>
+                      </Form.Group>}
                       <div className="d-flex justify-content-end mb-3">
                         <Link 
                           to="/forgot-password" 

@@ -297,6 +297,7 @@ function EditProfile() {
               <Form.Control
                 type="email"
                 name="email"
+                        readOnly
                 value={formData.email}
                 onChange={handleChange}
                 isInvalid={!!validationErrors.email}

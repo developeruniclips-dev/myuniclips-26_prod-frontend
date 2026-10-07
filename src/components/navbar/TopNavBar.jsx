@@ -122,10 +122,9 @@ function TopNavBar({ showLinks = true }) {
                   variant="outline-light"
                   className="ms-3 px-4 fw-semibold"
                   style={{ borderRadius: '25px' }}
-                  onClick={() => {
+                  onClick={async () => {
                     if (window.confirm('Are you sure you want to logout?')) {
-                      logout();
-                      navigate('/');
+                      if (await logout()) navigate('/');
                     }
                   }}
                 >
