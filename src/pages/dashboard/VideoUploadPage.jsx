@@ -151,7 +151,7 @@ function VideoUploadPage() {
       formData.append("subjectId", subjectId);
 
       await axios.post(
-        `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/videos`,
+        `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/videos?subjectId=${encodeURIComponent(subjectId)}`,
         formData,
         {
           headers: {
@@ -165,9 +165,10 @@ function VideoUploadPage() {
       alert("Video uploaded successfully!");
       navigate(`/manage-course/${subjectId}`);
     } catch (err) {
-      console.error(err);
       setUploading(false);
-      setError(err.response?.data?.message || "Upload failed. Please try again.");
+      const reference = err.response?.data?.uploadReference;
+      const supportReference = typeof reference === 'string' && /^[0-9a-f-]{36}$/.test(reference) ? ` Upload reference: ${reference}.` : '';
+      setError((err.response?.data?.message || "Upload failed. Please try again.") + supportReference);
     }
   };
 
@@ -222,7 +223,7 @@ function VideoUploadPage() {
                 </div>
               )}
               <Form.Text className="text-muted">
-                Max file size: 1 GB. Supported formats: MP4, AVI, MOV, WMV
+                Max file size: 1 GB. Supported formats: MP4, AVI, MOV, MKV, WEBM
               </Form.Text>
             </Form.Group>
 
