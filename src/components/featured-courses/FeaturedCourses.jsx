@@ -7,18 +7,6 @@ import { useAuth } from "../../context/temp";
 import './featuredCourses.css';
 import { classificationFields, courseCategoryLabel } from '../../utils/courseClassification.mjs';
 
-// Helper function to extract Vimeo video ID from URL
-const getVimeoId = (url) => {
-  if (!url) return null;
-  const match = url.match(/vimeo\.com\/(\d+)/);
-  return match ? match[1] : null;
-};
-
-// Helper function to get Vimeo thumbnail URL
-const getVimeoThumbnail = (videoId) => {
-  return `https://vumbnail.com/${videoId}.jpg`;
-};
-
 function FeaturedCourses() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -102,7 +90,7 @@ function FeaturedCourses() {
                 }}
               >
                 <img 
-                  src={getVimeoThumbnail(getVimeoId(course.firstVideo?.video_url))}
+                  src="/course-fallback.svg"
                   alt={course.subject_name}
                   style={{ 
                     width: '100%', 

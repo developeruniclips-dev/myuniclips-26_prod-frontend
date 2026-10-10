@@ -5,14 +5,13 @@ import { courseCategoryLabel } from '../../../utils/courseClassification.mjs';
 
 export default function LearningCourseCard({ course, saved, onSave, saving, featured = false }) {
   const [imageFailed, setImageFailed] = useState(false);
-  const vimeoId = course.videos?.[0]?.video_url?.match(/vimeo\.com\/(?:video\/)?(\d+)/)?.[1];
-  const image = vimeoId ? `https://vumbnail.com/${vimeoId}.jpg` : null;
+  const image = '/course-fallback.svg';
   const progress = course.progress;
   const action = !course.purchased ? 'View Course' : !course.active ? 'View Access' : progress?.completed ? 'Review Course' : progress?.started ? 'Continue Learning' : 'Start Learning';
   return <article className={`learning-course${featured ? ' learning-course-featured' : ''}`}>
     <div className="learning-course-image">
       {image && !imageFailed ? <img src={image} alt="" loading="lazy" onError={() => setImageFailed(true)} /> : <div className="learning-course-art" aria-hidden="true"><i className="bi bi-collection-play" /></div>}
-      {course.purchased && <span className="learning-course-tag">{!course.active ? 'Access expired' : progress?.completed ? 'Completed' : 'Purchased'}</span>}
+      {course.purchased && <span className="learning-course-tag">{course.historical ? 'Purchase history' : !course.active ? 'Access expired' : progress?.completed ? 'Completed' : 'Purchased'}</span>}
     </div>
     <div className="learning-course-body">
       {course.programme && <p className="learning-course-programme">{courseCategoryLabel(course, course.programme)}</p>}

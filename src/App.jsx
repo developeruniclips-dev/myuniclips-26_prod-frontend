@@ -130,7 +130,7 @@ function App() {
           <Route path="/my-library" element={<><LibrarySEO /><MyLibrary /><Footer /></>} />
           <Route path="/course/:subjectId/:scholarId" element={<><ProtectedRoute roles={["Learner", "Scholar", "Admin", "SuperAdmin"]}><CourseDetail /></ProtectedRoute><Footer /></>} />
           <Route path="/course/:subjectId" element={<><ProtectedRoute roles={["Learner", "Scholar", "Admin", "SuperAdmin"]}><CourseDetail /></ProtectedRoute><Footer /></>} />
-          <Route path="/watch/:id" element={<WatchVideo />} />
+          <Route path="/watch/:id" element={<ProtectedRoute roles={["Learner", "Scholar", "Admin", "SuperAdmin"]}><WatchVideo /></ProtectedRoute>} />
         </Routes>
       </div>
     </AuthProvider>

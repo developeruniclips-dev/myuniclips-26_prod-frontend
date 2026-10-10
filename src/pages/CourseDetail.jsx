@@ -8,21 +8,10 @@ import { CourseDetailSEO } from "../components/SEO";
 import LearnerTermsModal from "../components/terms/LearnerTermsModal";
 
 import { paymentStatus } from "../utils/paymentStatus.mjs";
+import { authorizedLesson } from '../utils/contentAccess.mjs';
 
 // Default bundle price (used as fallback)
 const DEFAULT_BUNDLE_PRICE = 6.00;
-
-// Helper function to extract Vimeo video ID from URL
-const getVimeoId = (url) => {
-  if (!url) return null;
-  const match = url.match(/vimeo\.com\/(\d+)/);
-  return match ? match[1] : null;
-};
-
-// Helper function to get Vimeo thumbnail URL
-const getVimeoThumbnail = (videoId) => {
-  return `https://vumbnail.com/${videoId}.jpg`;
-};
 
 // Checkout Component for Subject Bundle - Uses Stripe Checkout Session
 function BundleCheckoutForm({ subjectId, scholarId, subjectName, bundlePrice, onSuccess, onCancel }) {
@@ -155,6 +144,9 @@ function CourseDetail() {
   const [videos, setVideos] = useState([]);
   const [scholarInfo, setScholarInfo] = useState(null);
   const [hasPurchasedBundle, setHasPurchasedBundle] = useState(false);
+  const [playbackError,setPlaybackError]=useState('');
+  const playbackRequest=useRef(0);
+  useEffect(()=>{playbackRequest.current++;setPlayingVideo(null);setPlaybackError('');return()=>{playbackRequest.current++;};},[subjectId,urlScholarId,user?.token]);
   const [showCheckout, setShowCheckout] = useState(false);
   const [loading, setLoading] = useState(true);
   const [inLibrary, setInLibrary] = useState(false);
@@ -204,12 +196,15 @@ function CourseDetail() {
   }, [searchParams, user, subjectId, urlScholarId, navigate]);
 
   useEffect(() => {
+    const controller=new AbortController();
+    setLoading(true);setVideos([]);setCourse(null);setHasPurchasedBundle(false);
     const fetchCourseData = async () => {
       try {
         // Fetch all videos
         const videosRes = await axios.get(
-          `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/videos/all-videos`
+          `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/videos/all-videos`,{signal:controller.signal}
         );
+        if(controller.signal.aborted)return;
         
         const allVideos = videosRes.data.videos || [];
         
@@ -227,6 +222,11 @@ function CourseDetail() {
         
         subjectVideos.sort((a, b) => a.sequence_index - b.sequence_index);
         
+        if(user && urlScholarId && subjectVideos.length){
+          const {data}=await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/videos/courses/${subjectId}/${urlScholarId}`,{headers:{Authorization:`Bearer ${user.token}`},signal:controller.signal});
+          if(controller.signal.aborted)return;
+          subjectVideos=subjectVideos.map(v=>({...v,...data.videos.find(meta=>Number(meta.id)===Number(v.id))}));
+        }
         setVideos(subjectVideos);
 
         if (subjectVideos.length > 0) {
@@ -262,14 +262,15 @@ function CourseDetail() {
           });
         }
       } catch (err) {
-        console.error("Error fetching course data:", err);
+        if(!controller.signal.aborted)setPlaybackError('Unable to load this course. Reload or sign in again.');
       } finally {
-        setLoading(false);
+        if(!controller.signal.aborted)setLoading(false);
       }
     };
 
     fetchCourseData();
-  }, [subjectId, urlScholarId, navigate]);
+    return()=>controller.abort();
+  }, [subjectId, urlScholarId, navigate,user?.token]);
 
   useEffect(() => {
     if (!user || !scholarId) return;
@@ -484,30 +485,32 @@ function CourseDetail() {
     setHasPurchasedBundle(true);
     // Start playing the first video in-page
     if (videos.length > 0) {
-      setPlayingVideo(videos[0]);
+      handleVideoClick(videos[0],0);
     }
   };
 
   // Can watch if: first video (free) OR has purchased the bundle
   const canWatchVideo = (video, index) => {
-    return index === 0 || hasPurchasedBundle;
+    return video.can_access === true || Number(video.is_first_preview) === 1 || hasPurchasedBundle;
   };
 
-  const handleVideoClick = (video, index) => {
-    if (canWatchVideo(video, index)) {
-      // Play video in-page instead of navigating
-      setPlayingVideo(video);
+  const handleVideoClick = async (video, index) => {
+    if(!user){navigate('/login');return;}
+    const request=++playbackRequest.current;setPlayingVideo(null);setPlaybackError('');
+    try{
+      const authorized=await authorizedLesson(axios,import.meta.env.VITE_API_URL || 'http://localhost:3001/api',user.token,video.id,subjectId,scholarId);
+      if(request!==playbackRequest.current)return;
+      setPlayingVideo({...video,...authorized});
       // Scroll to video player after a short delay to ensure the player is rendered
       setTimeout(() => {
         if (videoPlayerRef.current) {
           videoPlayerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
       }, 100);
-    } else if (!user) {
-      navigate('/login');
-    } else {
-      // Show checkout for the bundle
-      setShowCheckout(true);
+    }catch(error){
+      if(request!==playbackRequest.current)return;
+      if(error.response?.status===403)setShowCheckout(true);
+      else setPlaybackError('Unable to authorize this lesson. Reload or sign in again.');
     }
   };
 
@@ -536,7 +539,7 @@ function CourseDetail() {
   }
 
   const totalVideos = videos.length;
-  const freeVideos = 1; // First video is always free
+  const freeVideos = videos.filter(video=>Number(video.is_first_preview)===1).length;
   const paidVideos = totalVideos - freeVideos;
 
   return (
@@ -629,7 +632,7 @@ function CourseDetail() {
                   }}
                 >
                   <img 
-                    src={getVimeoThumbnail(getVimeoId(videos[0]?.video_url))}
+                    src="/course-fallback.svg"
                     alt={videos[0]?.title || 'Course Preview'}
                     style={{ 
                       width: '100%', 
@@ -757,6 +760,7 @@ function CourseDetail() {
         <Row>
           <Col lg={8}>
             {/* In-Page Video Player */}
+            {playbackError && <Alert variant="warning">{playbackError}</Alert>}
             {playingVideo && (
               <Card className="border-0 shadow-sm mb-4" ref={videoPlayerRef}>
                 <Card.Header className="bg-primary text-white py-3 d-flex justify-content-between align-items-center">
@@ -782,7 +786,7 @@ function CourseDetail() {
                   <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>
                     <iframe
                       ref={iframeRef}
-                      src={`https://player.vimeo.com/video/${getVimeoId(playingVideo.video_url)}?autoplay=1`}
+                      src={playingVideo.player_url}
                       style={{
                         position: 'absolute',
                         top: 0,
@@ -809,7 +813,7 @@ function CourseDetail() {
               <ListGroup variant="flush">
                 {videos.map((video, index) => {
                   const canWatch = canWatchVideo(video, index);
-                  const isFirstVideo = index === 0;
+                  const isFirstVideo = Number(video.is_first_preview)===1;
                   const isPlaying = playingVideo && playingVideo.id === video.id;
                   
                   return (

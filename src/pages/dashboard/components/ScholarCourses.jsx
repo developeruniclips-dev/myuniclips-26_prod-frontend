@@ -1,12 +1,11 @@
 import { formatMoney } from '../../../utils/paymentStatus.mjs';
 import { Link } from 'react-router-dom';
 import { BookOpen, Plus, ArrowUpRight } from 'lucide-react';
+import {workflowLabel} from '../../../utils/reviewReadiness.mjs';
 
 export function courseStatus(course, videos) {
   if (!Number(course.approved)) return 'Application pending';
-  if (!videos.length) return 'Ready to Upload';
-  if (videos.every(v => Number(v.approved) === 1)) return 'Published';
-  return videos.some(v => Number(v.approved) === 1) ? 'Published · More in review' : 'Pending Review';
+  return workflowLabel(course.workflow_state);
 }
 export default function ScholarCourses({ courses, videos, limits, earnings, error, onRemove, removing }) {
   return <section className="scholar-section" aria-labelledby="scholar-courses-title">

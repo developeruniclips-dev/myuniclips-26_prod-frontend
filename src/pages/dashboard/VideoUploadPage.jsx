@@ -9,6 +9,7 @@ import ScholarTermsModal from "../../components/terms/ScholarTermsModal";
 import VideoMetadataFields, { metadataError } from './components/VideoMetadataFields';
 import useCourseLimits from './components/useCourseLimits';
 import './scholarDashboard.css';
+import {canEditCourse,workflowLabel} from '../../utils/reviewReadiness.mjs';
 
 function VideoUploadPage() {
   const { user } = useAuth();
@@ -31,6 +32,8 @@ function VideoUploadPage() {
   const [error, setError] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
+  const [workflow,setWorkflow]=useState(null);
+  useEffect(()=>{let active=true;setWorkflow(null);if(subjectId&&user?.token)axios.get(`${import.meta.env.VITE_API_URL||'http://localhost:3001/api'}/videos/scholar/courses/${subjectId}`,{headers:{Authorization:`Bearer ${user.token}`}}).then(r=>{if(active)setWorkflow(r.data);}).catch(()=>{if(active)setError('Unable to verify course editing permission. Refresh before uploading.');});return()=>{active=false;};},[subjectId,user?.token]);
 
   // Fetch scholar's subjects
   useEffect(() => {
@@ -117,6 +120,7 @@ function VideoUploadPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if(!canEditCourse(workflow)){setError('This course is locked or its editing permission is unavailable.');return;}
     
     if (!termsAccepted) {
       setShowTermsModal(true);
@@ -162,7 +166,7 @@ function VideoUploadPage() {
       );
 
       setUploading(false);
-      alert("Video uploaded successfully!");
+      alert("Upload accepted. Video readiness will be checked in course review; processing may still be underway.");
       navigate(`/manage-course/${subjectId}`);
     } catch (err) {
       setUploading(false);
@@ -205,6 +209,7 @@ function VideoUploadPage() {
           <p className="text-muted text-center mb-4">Share your knowledge with students</p>
 
           {error && <Alert variant="danger">{error}</Alert>}
+          <p>Status: {workflowLabel(workflow?.workflow?.state)}{workflow&&!canEditCourse(workflow)&&' — course editing is locked.'}</p>
 
           <Form onSubmit={handleSubmit}>
             <Form.Group className="mb-4">
@@ -285,7 +290,7 @@ function VideoUploadPage() {
 
             <Alert variant="info" className="mb-4">
               <i className="bi bi-info-circle me-2"></i>
-              <strong>Note:</strong> Video pricing will be set by admin after review and approval.
+              <strong>Note:</strong> Learners purchase the complete course. Submit it for review from Manage Course when all lessons are ready.
             </Alert>
 
             <Form.Group className="mb-4">
@@ -314,7 +319,7 @@ function VideoUploadPage() {
                 type="submit" 
                 variant="primary" 
                 size="lg"
-                disabled={uploading || !termsAccepted || !limits || !videosLoaded || !file || (videoCounts[subjectId] || 0) >= MAX_VIDEOS_PER_SUBJECT}
+                disabled={uploading || !canEditCourse(workflow) || !termsAccepted || !limits || !videosLoaded || !file || (videoCounts[subjectId] || 0) >= MAX_VIDEOS_PER_SUBJECT}
                 className="py-3 fw-semibold"
                 style={{ borderRadius: '10px' }}
               >

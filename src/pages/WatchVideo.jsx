@@ -4,6 +4,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { Container, Row, Col, ListGroup, Card, Button, Alert, Badge } from "react-bootstrap";
 import axios from "axios";
 import { useAuth } from "../context/temp";
+import {authorizedLesson} from '../utils/contentAccess.mjs';
 
 // Default bundle price (fallback)
 const DEFAULT_BUNDLE_PRICE = 6.00;
@@ -13,6 +14,8 @@ function WatchVideo() {
   const { id } = useParams(); // video id
   const navigate = useNavigate();
   const [video, setVideo] = useState(null);
+  const [playback,setPlayback]=useState(null);
+  const [playbackError,setPlaybackError]=useState('');
   const [playlist, setPlaylist] = useState([]);
   const [hasPurchasedBundle, setHasPurchasedBundle] = useState(false);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
@@ -23,11 +26,14 @@ function WatchVideo() {
   const progressIntervalRef = useRef(null);
 
   useEffect(() => {
+    const controller=new AbortController();setVideo(null);setPlayback(null);setPlaybackError('');setHasPurchasedBundle(false);setSavedProgress(0);
     const fetchVideos = async () => {
       try {
-        const res = await axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/videos/all-videos`);
+        const res = await axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/videos/all-videos`,{signal:controller.signal});
+        if(controller.signal.aborted)return;
         const allVideos = res.data.videos || [];
         const current = allVideos.find(v => v.id === parseInt(id));
+        if(!current){setPlaybackError('Content unavailable.');return;}
         setVideo(current);
         
         // Get bundle price from the video data
@@ -37,21 +43,23 @@ function WatchVideo() {
 
         // Create playlist: all videos by same subject + scholar
         const pl = allVideos.filter(v => 
-          v.subject_name === current.subject_name && 
-          v.scholar_fname === current.scholar_fname &&
-          v.scholar_lname === current.scholar_lname
+          v.subject_id === current.subject_id && v.scholar_user_id === current.scholar_user_id
         ).sort((a, b) => a.sequence_index - b.sequence_index);
         setPlaylist(pl);
         
         // Find current video index in playlist
         const idx = pl.findIndex(v => v.id === parseInt(id));
         setCurrentVideoIndex(idx >= 0 ? idx : 0);
+        if(!user){setPlaybackError('Sign in to watch this lesson.');return;}
+        const authorized=await authorizedLesson(axios,import.meta.env.VITE_API_URL || 'http://localhost:3001/api',user.token,id,current.subject_id,current.scholar_user_id,controller.signal);
+        if(!controller.signal.aborted)setPlayback(authorized);
       } catch (err) {
-        console.error(err);
+        if(!controller.signal.aborted)setPlaybackError(err.response?.status===403?'An active course purchase is required.':'Unable to authorize this lesson. Reload or sign in again.');
       }
     };
     fetchVideos();
-  }, [id]);
+    return()=>controller.abort();
+  }, [id,user?.token]);
 
   useEffect(() => {
     if (!user || !video) return;
@@ -120,7 +128,7 @@ function WatchVideo() {
     if (!user || !video || !iframeRef.current) return;
     
     // Can watch if first video (free) or has purchased bundle
-    const canWatch = currentVideoIndex === 0 || hasPurchasedBundle;
+    const canWatch = !!playback;
     if (!canWatch) return;
 
     // Load Vimeo Player API
@@ -185,17 +193,18 @@ function WatchVideo() {
         // Don't remove the script as it might be used by other videos
       }
     };
-  }, [user, video, id, currentVideoIndex, hasPurchasedBundle, savedProgress, saveProgress]);
+  }, [user, video, id, currentVideoIndex, hasPurchasedBundle, savedProgress, saveProgress,playback]);
 
-  if (!video) return <Container className="my-5">Loading...</Container>;
+  if (!video) return <Container className="my-5">{playbackError?<Alert variant="warning">{playbackError}</Alert>:'Loading...'}</Container>;
 
   // Can watch if first video (index 0) or has purchased bundle
-  const canWatch = currentVideoIndex === 0 || (user && hasPurchasedBundle);
-  const isFirstVideo = currentVideoIndex === 0;
+  const canWatch = !!user && !!playback;
+  const isFirstVideo = Number(video.is_first_preview)===1;
 
   return (
     <Container className="my-5">
       <Row>
+        {playbackError && <Alert variant="warning">{playbackError}</Alert>}
         <Col md={8}>
           {/* Show login prompt if not logged in and video is free */}
           {!user && video.is_free === 1 && (
@@ -218,11 +227,11 @@ function WatchVideo() {
           {canWatch ? (
             <Card className="border-0 shadow-sm mb-3">
               {/* Vimeo Embed Player */}
-              {video.video_url.includes('vimeo.com') ? (
+              {(
                 <div style={{ padding: '56.25% 0 0 0', position: 'relative' }}>
                   <iframe
                     ref={iframeRef}
-                    src={`https://player.vimeo.com/video/${video.video_url.split('/').pop()}?badge=0&autopause=0&player_id=0&app_id=58479`}
+                    src={playback.player_url}
                     frameBorder="0"
                     allow="autoplay; fullscreen; picture-in-picture; clipboard-write"
                     style={{
@@ -248,14 +257,6 @@ function WatchVideo() {
                     </div>
                   )}
                 </div>
-              ) : (
-                // Fallback for non-Vimeo videos
-                <video 
-                  controls 
-                  width="100%" 
-                  src={video.video_url}
-                  style={{ borderRadius: '8px 8px 0 0' }}
-                ></video>
               )}
               <Card.Body>
                 <div className="d-flex justify-content-between align-items-start mb-3">
@@ -370,9 +371,9 @@ function WatchVideo() {
             </Card.Header>
             <ListGroup variant="flush">
               {playlist.map((v, idx) => {
-                const isVideoLocked = idx > 0 && !hasPurchasedBundle;
+                const isVideoLocked = Number(v.is_first_preview)!==1 && !hasPurchasedBundle;
                 const isCurrentVideo = v.id === parseInt(id);
-                const isFirst = idx === 0;
+                const isFirst = Number(v.is_first_preview)===1;
                 
                 return (
                   <ListGroup.Item 

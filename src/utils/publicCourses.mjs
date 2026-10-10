@@ -12,9 +12,9 @@ export function publishedCourses(videos) {
   }
   return [...groups.values()].map(course => {
     course.videos.sort((a,b) => Number(a.sequence_index)-Number(b.sequence_index));
-    const first = course.videos[0], id = first.video_url?.match(/vimeo\.com\/(\d+)/)?.[1];
+    const first = course.videos[0];
     return {...course, totalVideos:course.videos.length, firstVideoFree:Number(first.is_free)===1,
-      thumbnailUrl:id ? `https://vumbnail.com/${id}.jpg` : '/course-fallback.svg'};
+      thumbnailUrl:'/course-fallback.svg'};
   });
 }
 export function filterPublishedCourses(courses, {search='',university='',programme='',general=false}) {

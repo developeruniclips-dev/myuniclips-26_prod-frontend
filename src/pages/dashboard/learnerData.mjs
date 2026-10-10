@@ -43,8 +43,8 @@ export function buildPurchased(catalog, bundles, legacy, progress, now = Date.no
   const courses = new Map();
   bundles.forEach(purchase => {
     const key = courseKey(purchase.subject_id, purchase.scholar_id);
-    const active = Number(purchase.is_access_active ?? 1) === 1 &&
-      (!purchase.access_expires_at || dateValue(purchase.access_expires_at) > now);
+    const active = Number(purchase.is_active) === 1 && Number(purchase.is_access_active) === 1 &&
+      !!purchase.access_expires_at && dateValue(purchase.access_expires_at) > now;
     if (courses.get(key)?.active) return;
     const course = catalog.find(item => item.key === key) || {
       key, subjectId: purchase.subject_id, scholarId: purchase.scholar_id,
@@ -61,13 +61,13 @@ export function buildPurchased(catalog, bundles, legacy, progress, now = Date.no
       ? courseKey(purchase.subject_id, purchase.scholar_id) : `video-${purchase.video_id}`);
     if (courses.get(key)?.bundle && courses.get(key).active) return;
     const video = catalogCourse?.videos.find(v => String(v.id) === String(purchase.video_id)) || {
-      id: purchase.video_id, title: purchase.title, video_url: purchase.video_url
+      id: purchase.video_id, title: purchase.title
     };
     if (!courses.has(key) || courses.get(key).bundle) courses.set(key, {
       ...catalogCourse, key, title: catalogCourse?.title || purchase.title,
       subjectId: catalogCourse?.subjectId || purchase.subject_id,
       scholarId: catalogCourse?.scholarId || purchase.scholar_id,
-      videos: [], purchased: true, active: true, bundle: false
+      videos: [], purchased: true, active: false, bundle: false, historical: true
     });
     const course = courses.get(key);
     if (!course.videos.some(v => String(v.id) === String(video.id))) course.videos.push(video);
