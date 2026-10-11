@@ -8,7 +8,7 @@ import './operations.css';
 
 const adminNav = [['overview', 'Overview', 'grid'], ['people', 'People', 'people'], ['approvals', 'Approvals', 'check2-square'], ['support', 'Support', 'chat-square-text'], ['transactions', 'Transactions', 'receipt'], ['profile', 'My Profile', 'person-circle']];
 const ownerNav = [['overview', 'Overview', 'grid'], ['universities', 'Universities', 'buildings'], ['people', 'People', 'people'], ['operations', 'Operations', 'check2-square'], ['finance', 'Finance', 'receipt'], ['analytics', 'Analytics', 'bar-chart'], ['system', 'System', 'shield-check']];
-const approvalPanels = [['scholars', 'Scholar Applications'], ['courses', 'Course Applications'], ['videos', 'Video Reviews']];
+const approvalPanels = [['scholars', 'Scholar Applications'], ['courses', 'Course Applications'], ['videos', 'Course Review']];
 const panels = { approvals: approvalPanels, support: [['support', 'Support Cases'], ['escalations', 'My Escalations'], ['activity', 'My Activity']], operations: [...approvalPanels, ['support', 'Support Cases'], ['escalations', 'Escalations']], finance: [['transactions', 'Transactions'], ['allocations', 'Allocations / Transfers'], ['legacy', 'Historical Transfers'], ['pricing', 'Pricing'], ['review', 'Financial Review']], system: [['admins', 'Admins & Permissions'], ['catalogue', 'Academic Catalogue'], ['security', 'Security'], ['audit', 'Audit Log'], ['settings', 'Platform Settings'], ['profile', 'Profile']] };
 export default function Workspace({ owner = false }) {
   const [params, setParams] = useSearchParams(), nav = owner ? ownerNav : adminNav;
@@ -17,6 +17,8 @@ export default function Workspace({ owner = false }) {
   const personId = params.get('person');
   const go = (section, panel) => setParams({ section, ...(panel ? { panel } : {}) });
   const openPerson = id => { const next = new URLSearchParams(params); next.set('person', id); setParams(next); };
+  const openCourse = id => setParams({section:owner?'operations':'approvals',panel:'videos',...(id?{offering:String(id)}:{})});
+  const offeringId=Number(params.get('offering'));
   const closePerson = () => { const next = new URLSearchParams(params); next.delete('person'); setParams(next); };
   let content;
   if (section === 'people') content = <People {...{ owner, personId, openPerson, closePerson }} />;
@@ -25,7 +27,7 @@ export default function Workspace({ owner = false }) {
   else if (section === 'analytics') content = <Analytics />;
   else if (section === 'profile' || panel === 'profile') content = <Profile />;
   else if (section === 'transactions' || panel === 'transactions') content = <Transactions />;
-  else if (['scholars', 'courses', 'videos'].includes(panel)) content = <Approvals key={panel} kind={panel} {...{ openPerson, owner }} />;
+  else if (['scholars', 'courses', 'videos'].includes(panel)) content = <Approvals key={panel} kind={panel} offeringId={Number.isSafeInteger(offeringId)&&offeringId>0?offeringId:undefined} onOpenCourse={openCourse} {...{ openPerson, owner }} />;
   else if (['support', 'escalations'].includes(panel)) content = <Cases key={panel} kind={panel} {...{ openPerson }} />;
   else if (['activity', 'audit'].includes(panel)) content = <Audit />;
   else if (['allocations', 'legacy', 'review'].includes(panel)) content = <Finance key={panel} view={panel} />;

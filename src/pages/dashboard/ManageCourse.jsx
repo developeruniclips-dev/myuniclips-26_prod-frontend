@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowUp, ArrowDown, Plus, Pencil, Trash2 } from 'lucide-react';
 import axios from 'axios';
@@ -6,6 +6,7 @@ import { useAuth } from '../../context/temp';
 import './scholarDashboard.css';
 import VideoMetadataFields, { metadataError } from './components/VideoMetadataFields';
 import ReviewPlayer from '../../components/ReviewPlayer';
+import CourseSubmissionModal from '../../components/CourseSubmissionModal';
 import {canEditCourse,workflowLabel} from '../../utils/reviewReadiness.mjs';
 
 export default function ManageCourse() {
@@ -18,6 +19,7 @@ export default function ManageCourse() {
   const [editing, setEditing] = useState(null);
   const [preview, setPreview] = useState(null);
   const [submitting,setSubmitting]=useState(false);
+  const submitPending=useRef(false);
   const editable=canEditCourse(data);
   const api = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
   const config = { headers: { Authorization: `Bearer ${user.token}` } };
@@ -38,8 +40,8 @@ export default function ManageCourse() {
   }, [api, subjectId, user.token]);
   async function mutate(work, message) {
     setBusy(true); setError(''); setNotice('');
-    try { await work(); await refresh(); setNotice(message); }
-    catch (err) { setError(err.response?.data?.message || 'Unable to save. Refresh and try again.'); }
+    try { await work(); await refresh(); setNotice(message); return true; }
+    catch (err) { setError(err.response?.data?.message || 'Unable to save. Refresh and try again.'); return false; }
     finally { setBusy(false); }
   }
   function move(index, direction) {
@@ -60,15 +62,15 @@ export default function ManageCourse() {
     if (!window.confirm(`Remove the unapproved lesson from UniClips “${video.title}”? Its Vimeo asset will remain; the UniClips reference cannot be restored here.`)) return;
     mutate(() => axios.delete(`${api}/videos/my/${video.id}`, config), 'Unapproved lesson deleted.');
   }
-  function submit(){setSubmitting(false);setEditing(null);mutate(()=>axios.post(`${api}/videos/scholar/courses/${subjectId}/submit`,{},config),'Course submitted for review. Editing is now locked.');}
+  async function submit(){if(submitPending.current)return;submitPending.current=true;setEditing(null);try{const saved=await mutate(()=>axios.post(`${api}/videos/scholar/courses/${subjectId}/submit`,{},config),'Course submitted for review. Editing is now locked.');if(saved){setSubmitting(false);document.getElementById('course-workflow-status')?.focus();}}finally{submitPending.current=false;}}
   return <div className="scholar-workspace"><main className="scholar-shell">
     <Link className="btn btn-outline-primary mb-4" to="/scholar-dashboard">← Scholar Dashboard</Link>
     {error && <p role="alert" className="alert alert-danger">{error}</p>}
     {notice && <p role="status" className="alert alert-success">{notice}</p>}
     {!data ? !error && <p role="status">Loading course content…</p> : <>
-      <header className="scholar-section scholar-section-heading"><div><span className="scholar-eyebrow">COURSE CONTENT</span><h1>{data.course.course_name}</h1><p>{data.videos.length} of {data.limits.maxVideos} videos uploaded</p><small>{data.course.degree}</small></div>
+      <header className="scholar-section scholar-section-heading"><div><span className="scholar-eyebrow">COURSE CONTENT</span><h1>{data.course.course_name}</h1><p>{data.videos.length} uploaded {data.videos.length===1?'lesson':'lessons'} | Up to {data.limits.maxVideos} allowed</p><small>{data.course.degree}</small></div>
         {editable && data.videos.length < data.limits.maxVideos && <Link className="btn btn-primary" to={`/upload-video?subject_id=${subjectId}`}><Plus size={18} /> Upload Video</Link>}</header>
-      <section className="scholar-section"><h2>Status: {workflowLabel(data.workflow?.state)}</h2>{data.workflow?.feedback&&<p>{data.workflow.feedback}</p>}{!editable&&<p>This course is locked for review or publication. You can view its lessons.</p>}{editable&&data.videos.length>0&&<button className="btn btn-primary" disabled={busy} onClick={()=>setSubmitting(true)}>{data.workflow?.state==='CHANGES_REQUESTED'?'Resubmit Course for Review':'Submit Course for Review'}</button>}</section>
+      <section className="scholar-section" id="course-workflow-status" tabIndex={-1}><h2>Status: {workflowLabel(data.workflow?.state)}</h2>{data.workflow?.feedback&&<p>{data.workflow.feedback}</p>}{!editable&&<p>This course is locked for review or publication. You can view its lessons.</p>}{editable&&data.videos.length>0&&<button className="btn btn-primary" disabled={busy} onClick={()=>{setError('');setSubmitting(true);}}>{data.workflow?.state==='CHANGES_REQUESTED'?'Resubmit Course for Review':'Submit Course for Review'}</button>}</section>
       <section className="scholar-section"><h2>Your lessons</h2><p>{data.orderLocked ? 'Lesson order is locked for this course.' : 'Use Move Up and Move Down to arrange your lessons before admin approval. Lesson 1 is the free preview.'}</p>
         {!data.videos.length ? <div className="scholar-empty"><h3>Ready for your first lesson</h3><p>Upload a video to start preparing this course for review.</p></div> : <ol className="scholar-lessons">{data.videos.map((video, index) => <li key={video.id}>
           <span className="scholar-sequence" aria-label={`Lesson ${video.sequence_index}`}>{video.sequence_index}</span>
@@ -86,7 +88,7 @@ export default function ManageCourse() {
         <VideoMetadataFields title={editing.title} description={editing.description} limits={data.limits} onTitleChange={title => setEditing({ ...editing, title })} onDescriptionChange={description => setEditing({ ...editing, description })} />
         <button className="btn btn-primary me-2" disabled={busy}>Save details</button><button className="btn btn-outline-secondary" type="button" disabled={busy} onClick={() => setEditing(null)}>Cancel</button>
       </form></section>}
-      {submitting&&editable&&<section role="dialog" aria-modal="true" aria-label="Submit complete course" className="scholar-section"><h2>Submit {data.course.course_name} for review?</h2><p>By submitting, you confirm that you have uploaded all lessons intended for this course and arranged them in the correct order.</p><p>After submission, you will not be able to upload, delete, reorder or edit the course while UniClips reviews it.</p><button disabled={busy} onClick={()=>setSubmitting(false)}>Cancel</button><button className="btn btn-primary" disabled={busy} onClick={submit}>Yes, Submit Course</button></section>}
+      {submitting&&editable&&<CourseSubmissionModal courseName={data.course.course_name} lessonCount={data.videos.length} busy={busy} error={error} onCancel={()=>setSubmitting(false)} onSubmit={submit}/>}
     </>}
   </main></div>;
 }
