@@ -9,6 +9,7 @@ import LearnerTermsModal from "../components/terms/LearnerTermsModal";
 
 import { paymentStatus } from "../utils/paymentStatus.mjs";
 import { authorizedLesson } from '../utils/contentAccess.mjs';
+import { courseCover } from '../utils/courseCovers.mjs';
 
 // Default bundle price (used as fallback)
 const DEFAULT_BUNDLE_PRICE = 6.00;
@@ -632,7 +633,7 @@ function CourseDetail() {
                   }}
                 >
                   <img 
-                    src="/course-fallback.svg"
+                    src={courseCover(subjectId, scholarId, videos[0]?.id)}
                     alt={videos[0]?.title || 'Course Preview'}
                     style={{ 
                       width: '100%', 

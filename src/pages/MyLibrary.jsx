@@ -4,18 +4,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/temp";
 import axios from "axios";
 import { courseCategoryLabel } from '../utils/courseClassification.mjs';
-
-// Helper function to extract Vimeo video ID from URL
-const getVimeoId = (url) => {
-  if (!url) return null;
-  const match = url.match(/vimeo\.com\/(\d+)/);
-  return match ? match[1] : null;
-};
-
-// Helper function to get Vimeo thumbnail URL
-const getVimeoThumbnail = (videoId) => {
-  return `https://vumbnail.com/${videoId}.jpg`;
-};
+import { courseCover } from '../utils/courseCovers.mjs';
 
 function MyLibrary() {
   const { user } = useAuth();
@@ -118,7 +107,7 @@ function MyLibrary() {
                 >
                   <Card.Img
                     variant="top"
-                    src={course.thumbnailUrl}
+                    src={courseCover(course.subject_id, course.scholar_id, course.videos?.[0]?.id)}
                     alt={course.subject_name}
                     style={{ 
                       aspectRatio: '16/9', 
@@ -127,7 +116,7 @@ function MyLibrary() {
                     }}
                     onError={(e) => {
                       e.target.onerror = null;
-                      e.target.src = 'https://via.placeholder.com/640x360?text=Course';
+                      e.target.src = '/course-fallback.svg';
                     }}
                   />
                   {/* Progress overlay */}

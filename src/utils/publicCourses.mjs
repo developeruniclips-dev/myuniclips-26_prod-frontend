@@ -1,3 +1,4 @@
+import {courseCover} from './courseCovers.mjs';
 import {classificationFields, matchesCourseSearch} from './courseClassification.mjs';
 export function publishedCourses(videos) {
   const groups = new Map();
@@ -14,7 +15,7 @@ export function publishedCourses(videos) {
     course.videos.sort((a,b) => Number(a.sequence_index)-Number(b.sequence_index));
     const first = course.videos[0];
     return {...course, totalVideos:course.videos.length, firstVideoFree:Number(first.is_free)===1,
-      thumbnailUrl:'/course-fallback.svg'};
+      thumbnailUrl:courseCover(course.subjectId,course.scholarId,first.id)};
   });
 }
 export function filterPublishedCourses(courses, {search='',university='',programme='',general=false}) {

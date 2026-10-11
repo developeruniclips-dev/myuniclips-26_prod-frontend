@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { learningHref } from '../learnerData.mjs';
+import { courseCover } from '../../../utils/courseCovers.mjs';
 import { courseCategoryLabel } from '../../../utils/courseClassification.mjs';
 
 export default function LearningCourseCard({ course, saved, onSave, saving, featured = false }) {
   const [imageFailed, setImageFailed] = useState(false);
-  const image = '/course-fallback.svg';
+  const image = courseCover(course.subjectId, course.scholarId);
   const progress = course.progress;
   const action = !course.purchased ? 'View Course' : !course.active ? 'View Access' : progress?.completed ? 'Review Course' : progress?.started ? 'Continue Learning' : 'Start Learning';
   return <article className={`learning-course${featured ? ' learning-course-featured' : ''}`}>

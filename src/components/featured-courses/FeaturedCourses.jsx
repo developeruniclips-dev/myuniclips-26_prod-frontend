@@ -5,6 +5,7 @@ import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/temp";
 import './featuredCourses.css';
+import { courseCover } from '../../utils/courseCovers.mjs';
 import { classificationFields, courseCategoryLabel } from '../../utils/courseClassification.mjs';
 
 function FeaturedCourses() {
@@ -90,7 +91,7 @@ function FeaturedCourses() {
                 }}
               >
                 <img 
-                  src="/course-fallback.svg"
+                  src={courseCover(course.subject_id, course.scholar_user_id, course.firstVideo.id)}
                   alt={course.subject_name}
                   style={{ 
                     width: '100%', 
