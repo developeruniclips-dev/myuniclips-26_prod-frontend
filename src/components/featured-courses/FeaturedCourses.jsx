@@ -1,3 +1,4 @@
+import { pagedGet } from '../../utils/pagedCollection.mjs';
 // src/components/FeaturedCourses.jsx
 import { useState, useEffect } from "react";
 import { Container, Row, Col, Card, Button, Badge, Modal } from "react-bootstrap";
@@ -12,12 +13,13 @@ function FeaturedCourses() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [courses, setCourses] = useState([]);
+  const [loadError, setLoadError] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
 
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        const res = await axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/videos/all-videos`);
+        const res = await pagedGet(axios,`${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/videos/all-videos`);
         // Get approved videos
         const approvedVideos = res.data.videos.filter(video => video.approved === 1);
         
@@ -55,7 +57,7 @@ function FeaturedCourses() {
         // Pick 4 random courses
         setCourses(shuffled.slice(0, 4));
       } catch (err) {
-        console.error("Error fetching courses:", err);
+        setLoadError(true); console.error("Error fetching courses:");
       }
     };
     fetchCourses();
@@ -76,6 +78,7 @@ function FeaturedCourses() {
         <p className="text-muted fs-5 mt-3">Start learning with our most popular courses - First video always free!</p>
       </div>
       
+      {loadError && <p role="alert">Courses are temporarily unavailable. Refresh to try again; contact support if this continues.</p>}
       <Row className="g-4 justify-content-center">
         {courses.map((course) => (
           <Col lg={3} md={6} sm={12} key={`${course.subject_id}-${course.scholar_user_id}`}>

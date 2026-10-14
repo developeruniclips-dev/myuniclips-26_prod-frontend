@@ -89,7 +89,7 @@ function BecomeScholar() {
             alert('Application submitted successfully! We will review your application and notify you.');
             navigate('/dashboard');
         } catch (err) {
-            console.error('Error submitting application:', err);
+            console.error('Error submitting application:');
             setError(err.response?.data?.message || 'Failed to submit application. Please try again.');
             setLoading(false);
         }

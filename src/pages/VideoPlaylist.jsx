@@ -1,3 +1,4 @@
+import { pagedGet } from '../utils/pagedCollection.mjs';
 import React, { useState, useEffect } from "react";
 import { Container, Row, Col, Card, Button, Modal, Badge, Form, InputGroup } from "react-bootstrap";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -37,13 +38,13 @@ function VideoPlaylist() {
   useEffect(() => {
     let active = true;
     setLocationError('');
-    axios.get(`${api}/locations/universities?available=1`).then(r => { if(active) setUniversities(r.data); })
+    pagedGet(axios,`${api}/locations/universities?available=1`).then(r => { if(active) setUniversities(r.data); })
       .catch(() => { if(active) setLocationError('Unable to load academic filters. Try again.'); });
     return () => { active = false; };
   }, [api,retry]);
   useEffect(() => {
     let active = true; setProgrammes([]); setProgrammesLoading(Boolean(university));
-    if (university) axios.get(`${api}/locations/programs/by-university/${university}`)
+    if (university) pagedGet(axios,`${api}/locations/programs/by-university/${university}`)
       .then(r => { if(active) { setProgrammes(r.data); setLocationError(''); } })
       .catch(() => { if(active) setLocationError('Unable to load programmes. Try again.'); })
       .finally(() => { if(active) setProgrammesLoading(false); });
@@ -62,7 +63,7 @@ function VideoPlaylist() {
     let active = true; setLoading(true); setRequestError(false);
     const fetchVideos = async () => {
       try {
-        const res = await axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/videos/all-videos`);
+        const res = await pagedGet(axios,`${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/videos/all-videos`);
         const videos = res.data.videos || [];
         
         if (active) setCourses(publishedCourses(videos));

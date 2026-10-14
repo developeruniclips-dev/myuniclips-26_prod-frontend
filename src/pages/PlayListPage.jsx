@@ -1,3 +1,4 @@
+import { pagedGet } from '../utils/pagedCollection.mjs';
 import React, { useState, useEffect } from "react";
 import { Container, Row, Col, ListGroup, Modal, Button } from "react-bootstrap";
 import { useAuth } from "../context/temp";
@@ -10,6 +11,7 @@ function PlaylistPage() {
   const navigate = useNavigate();
 
   const [videos, setVideos] = useState([]);
+  const [loadError, setLoadError] = useState(false);
   const [currentVideo, setCurrentVideo] = useState(null);
   const [purchasedVideoIds, setPurchasedVideoIds] = useState([]);
   const [showModal, setShowModal] = useState(false);
@@ -19,7 +21,7 @@ function PlaylistPage() {
   useEffect(() => {
     const fetchVideos = async () => {
       try {
-        const res = await axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/videos/all-videos`);
+        const res = await pagedGet(axios,`${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/videos/all-videos`);
         const allVideos = res.data.videos || [];
         const filtered = allVideos.filter(v => `${v.subject_name}-${v.scholar_fname}-${v.scholar_lname}` === playlistKey);
         filtered.sort((a, b) => a.sequence_index - b.sequence_index);
@@ -29,7 +31,7 @@ function PlaylistPage() {
         const firstFree = filtered.find(v => v.is_free === 1) || filtered[0];
         setCurrentVideo(firstFree);
       } catch (err) {
-        console.error("Error fetching videos:", err);
+        setLoadError(true); console.error("Error fetching videos:");
       }
     };
     fetchVideos();
@@ -39,12 +41,12 @@ function PlaylistPage() {
     if (!user) return;
     const fetchPurchases = async () => {
       try {
-        const res = await axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/purchases/my-purchases`, {
+        const res = await pagedGet(axios,`${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/purchases/my-purchases`, {
           headers: { Authorization: `Bearer ${user.token}` }
         });
         setPurchasedVideoIds(res.data.purchases.map(p => p.video_id));
       } catch (err) {
-        console.error(err);
+        console.error('Browser request unavailable');
       }
     };
     fetchPurchases();
@@ -79,6 +81,7 @@ function PlaylistPage() {
 
   return (
     <Container className="my-5">
+      {loadError && <p role="alert">Course content is temporarily unavailable. Refresh to try again; contact support if this continues.</p>}
       <Row>
         {/* Main Video */}
         <Col md={8}>
@@ -89,7 +92,7 @@ function PlaylistPage() {
               <video controls width="100%" src={currentVideo.video_url} className="rounded mb-3" />
               <p>{currentVideo.description}</p>
             </>
-          ) : <p>No video available</p>}
+          ) : <p>{loadError ? "Course content could not be loaded." : "No video available"}</p>}
         </Col>
 
         {/* Playlist Sidebar */}

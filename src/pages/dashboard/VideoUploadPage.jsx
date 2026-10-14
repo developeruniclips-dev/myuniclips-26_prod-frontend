@@ -1,3 +1,4 @@
+import { pagedGet } from '../../utils/pagedCollection.mjs';
 // src/pages/dashboard/VideoUploadPage.jsx
 import { useState, useEffect } from "react";
 import { useAuth } from "../../context/temp";
@@ -55,7 +56,7 @@ function VideoUploadPage() {
         }
 
         // Fetch video counts for each subject
-        const videosRes = await axios.get(
+        const videosRes = await pagedGet(axios,
           `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/videos/scholar/my-videos`,
           { headers: { Authorization: `Bearer ${user.token}` } }
         );

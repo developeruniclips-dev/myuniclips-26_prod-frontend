@@ -1,3 +1,4 @@
+import { pagedGet } from '../../../utils/pagedCollection.mjs';
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
@@ -34,7 +35,7 @@ export default function ScholarTabs() {
     const config = { headers: { Authorization: `Bearer ${user.token}` } };
     async function load() {
       const profileResults = await Promise.allSettled([
-        axios.get(`${api}/users/profile`, config), axios.get(`${api}/scholar-profile/status`, config)
+        pagedGet(axios,`${api}/users/profile`, config), pagedGet(axios,`${api}/scholar-profile/status`, config)
       ]);
       if (!active) return;
       const profile = profileResults[0].status === 'fulfilled' ? profileResults[0].value.data : null;
@@ -43,7 +44,7 @@ export default function ScholarTabs() {
       if (scholar?.approved) {
         const names = ['courses', 'videos', 'earnings', 'stripe'];
         const paths = ['/scholar-subjects/status', '/videos/scholar/my-videos', '/stripe-connect/earnings', '/stripe-connect/account-status'];
-        const results = await Promise.allSettled(paths.map(path => axios.get(`${api}${path}`, config)));
+        const results = await Promise.allSettled(paths.map(path => pagedGet(axios,`${api}${path}`, config)));
         if (!active) return;
         const next = { profile, scholar };
         results.forEach((result, index) => { next[names[index]] = result.status === 'fulfilled' ? result.value.data : null; });

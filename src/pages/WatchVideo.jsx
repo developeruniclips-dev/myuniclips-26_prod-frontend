@@ -1,3 +1,4 @@
+import { pagedGet } from '../utils/pagedCollection.mjs';
 // src/pages/WatchVideo.jsx
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
@@ -29,7 +30,7 @@ function WatchVideo() {
     const controller=new AbortController();setVideo(null);setPlayback(null);setPlaybackError('');setHasPurchasedBundle(false);setSavedProgress(0);
     const fetchVideos = async () => {
       try {
-        const res = await axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/videos/all-videos`,{signal:controller.signal});
+        const res = await pagedGet(axios,`${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/videos/all-videos`,{signal:controller.signal});
         if(controller.signal.aborted)return;
         const allVideos = res.data.videos || [];
         const current = allVideos.find(v => v.id === parseInt(id));
@@ -67,7 +68,7 @@ function WatchVideo() {
     // Check if user has purchased the subject bundle
     const checkBundlePurchase = async () => {
       try {
-        const res = await axios.get(
+        const res = await pagedGet(axios,
           `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/purchases/subject/check`,
           { 
             params: { 
@@ -79,7 +80,7 @@ function WatchVideo() {
         );
         setHasPurchasedBundle(res.data.hasPurchased);
       } catch (err) {
-        console.error("Error checking bundle purchase:", err);
+        console.error("Error checking bundle purchase:");
       }
     };
     checkBundlePurchase();
@@ -95,7 +96,7 @@ function WatchVideo() {
         { headers: { Authorization: `Bearer ${user.token}` } }
       );
     } catch (err) {
-      console.error("Error saving progress:", err);
+      console.error("Error saving progress:");
     }
   }, [user, video, id]);
 
@@ -105,7 +106,7 @@ function WatchVideo() {
     
     const loadProgress = async () => {
       try {
-        const res = await axios.get(
+        const res = await pagedGet(axios,
           `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/library/video-progress`,
           { 
             params: { videoId: parseInt(id) },
@@ -116,7 +117,7 @@ function WatchVideo() {
           setSavedProgress(res.data.progressSeconds);
         }
       } catch (err) {
-        console.error("Error loading progress:", err);
+        console.error("Error loading progress:");
       }
     };
     
@@ -143,7 +144,7 @@ function WatchVideo() {
 
         // Resume from saved progress
         if (savedProgress > 0) {
-          player.setCurrentTime(savedProgress).catch(console.error);
+          player.setCurrentTime(savedProgress).catch(()=>console.error('Player seek failed'));
         }
 
         // Save progress every 10 seconds while playing
@@ -172,7 +173,7 @@ function WatchVideo() {
               { headers: { Authorization: `Bearer ${user.token}` } }
             );
           } catch (err) {
-            console.error("Error marking video as watched:", err);
+            console.error("Error marking video as watched:");
           }
         });
       }

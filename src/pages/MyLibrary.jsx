@@ -1,3 +1,4 @@
+import { pagedGet } from '../utils/pagedCollection.mjs';
 import React, { useState, useEffect } from "react";
 import { Container, Row, Col, Card, Button, Badge, ProgressBar, Alert } from "react-bootstrap";
 import { useNavigate, Link } from "react-router-dom";
@@ -11,6 +12,7 @@ function MyLibrary() {
   const navigate = useNavigate();
   const [library, setLibrary] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError,setLoadError] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -19,14 +21,16 @@ function MyLibrary() {
     }
 
     const fetchLibrary = async () => {
+      setLoadError(false);
       try {
-        const res = await axios.get(
+        const res = await pagedGet(axios,
           `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/library/my-library`,
           { headers: { Authorization: `Bearer ${user.token}` } }
         );
         setLibrary(res.data.library || []);
       } catch (err) {
-        console.error('Error fetching library:', err);
+        setLoadError(true);
+        console.error('Error fetching library:');
       } finally {
         setLoading(false);
       }
@@ -46,7 +50,7 @@ function MyLibrary() {
         !(c.subject_id === course.subject_id && c.scholar_id === course.scholar_id)
       ));
     } catch (err) {
-      console.error('Error removing from library:', err);
+      console.error('Error removing from library:');
     }
   };
 
@@ -79,7 +83,7 @@ function MyLibrary() {
         </Link>
       </div>
 
-      {library.length === 0 ? (
+      {loadError ? (<Alert variant="warning">Your library is temporarily unavailable. Please refresh to try again.</Alert>) : library.length === 0 ? (
         <Card className="border-0 shadow-sm text-center py-5">
           <Card.Body>
             <div className="mb-4">

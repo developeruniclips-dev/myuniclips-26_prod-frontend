@@ -1,3 +1,4 @@
+import { pagedGet } from '../utils/pagedCollection.mjs';
 // src/pages/CourseDetail.jsx
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -202,7 +203,7 @@ function CourseDetail() {
     const fetchCourseData = async () => {
       try {
         // Fetch all videos
-        const videosRes = await axios.get(
+        const videosRes = await pagedGet(axios,
           `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/videos/all-videos`,{signal:controller.signal}
         );
         if(controller.signal.aborted)return;
@@ -224,7 +225,7 @@ function CourseDetail() {
         subjectVideos.sort((a, b) => a.sequence_index - b.sequence_index);
         
         if(user && urlScholarId && subjectVideos.length){
-          const {data}=await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/videos/courses/${subjectId}/${urlScholarId}`,{headers:{Authorization:`Bearer ${user.token}`},signal:controller.signal});
+          const {data}=await pagedGet(axios,`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/videos/courses/${subjectId}/${urlScholarId}`,{headers:{Authorization:`Bearer ${user.token}`},signal:controller.signal});
           if(controller.signal.aborted)return;
           subjectVideos=subjectVideos.map(v=>({...v,...data.videos.find(meta=>Number(meta.id)===Number(v.id))}));
         }
@@ -279,7 +280,7 @@ function CourseDetail() {
     // Check if user has purchased this subject bundle
     const checkBundlePurchase = async () => {
       try {
-        const res = await axios.get(
+        const res = await pagedGet(axios,
           `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/purchases/subject/check`,
           { 
             params: { subjectId, scholarId },
@@ -288,7 +289,7 @@ function CourseDetail() {
         );
         setHasPurchasedBundle(res.data.hasPurchased);
       } catch (err) {
-        console.error("Error checking bundle purchase:", err);
+        console.error("Error checking bundle purchase:");
       }
     };
     checkBundlePurchase();
@@ -296,7 +297,7 @@ function CourseDetail() {
     // Check if course is in library
     const checkLibrary = async () => {
       try {
-        const res = await axios.get(
+        const res = await pagedGet(axios,
           `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/library/check`,
           { 
             params: { subjectId, scholarId },
@@ -305,7 +306,7 @@ function CourseDetail() {
         );
         setInLibrary(res.data.inLibrary);
       } catch (err) {
-        console.error("Error checking library:", err);
+        console.error("Error checking library:");
       }
     };
     checkLibrary();
@@ -320,7 +321,7 @@ function CourseDetail() {
     
     const loadProgress = async () => {
       try {
-        const res = await axios.get(
+        const res = await pagedGet(axios,
           `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/library/video-progress`,
           { 
             params: { videoId: playingVideo.id },
@@ -333,7 +334,7 @@ function CourseDetail() {
           setSavedProgress(0);
         }
       } catch (err) {
-        console.error("Error loading progress:", err);
+        console.error("Error loading progress:");
         setSavedProgress(0);
       }
     };
@@ -349,7 +350,7 @@ function CourseDetail() {
   // Seek to saved progress when it loads
   useEffect(() => {
     if (playerRef.current && savedProgress > 0 && !hasSeekRef.current) {
-      playerRef.current.setCurrentTime(savedProgress).catch(console.error);
+      playerRef.current.setCurrentTime(savedProgress).catch(()=>console.error('Player seek failed'));
       hasSeekRef.current = true;
     }
   }, [savedProgress]);
@@ -377,7 +378,7 @@ function CourseDetail() {
                 );
               }
             } catch (err) {
-              console.error("Error saving progress:", err);
+              console.error("Error saving progress:");
             }
           }, 10000);
         });
@@ -395,7 +396,7 @@ function CourseDetail() {
               );
             }
           } catch (err) {
-            console.error("Error saving progress:", err);
+            console.error("Error saving progress:");
           }
         });
 
@@ -409,7 +410,7 @@ function CourseDetail() {
               { headers: { Authorization: `Bearer ${user.token}` } }
             );
           } catch (err) {
-            console.error("Error marking video as watched:", err);
+            console.error("Error marking video as watched:");
           }
         });
       }
@@ -459,7 +460,7 @@ function CourseDetail() {
       );
       setInLibrary(true);
     } catch (err) {
-      console.error("Error adding to library:", err);
+      console.error("Error adding to library:");
     } finally {
       setAddingToLibrary(false);
     }
@@ -475,7 +476,7 @@ function CourseDetail() {
       );
       setInLibrary(false);
     } catch (err) {
-      console.error("Error removing from library:", err);
+      console.error("Error removing from library:");
     } finally {
       setAddingToLibrary(false);
     }

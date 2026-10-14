@@ -1,3 +1,4 @@
+import { pagedGet } from '../../utils/pagedCollection.mjs';
 import React, { useEffect, useState } from 'react';
 import { Container, Alert, Tabs, Tab } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
@@ -48,7 +49,7 @@ export default function Dashboard() {
     let cancelled = false;
     setLoading(true);
     const entries = Object.entries(requests);
-    Promise.allSettled(entries.map(([, path]) => axios.get(`${API}${path}`, {
+    Promise.allSettled(entries.map(([, path]) => pagedGet(axios,`${API}${path}`, {
       headers: { Authorization: `Bearer ${user.token}` }
     }))).then(results => {
       if (cancelled) return;

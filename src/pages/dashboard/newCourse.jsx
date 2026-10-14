@@ -30,7 +30,7 @@ function NewCourse() {
         setScholarProfile(res.data.profile);
         setDegree(res.data.profile?.degree || "");
       } catch (err) {
-        console.error("Error fetching scholar profile:", err);
+        console.error("Error fetching scholar profile:");
       }
     };
 
