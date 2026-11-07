@@ -8,7 +8,7 @@ export function buildCatalog(videos) {
   videos.filter(video => Number(video.approved) === 1).forEach(video => {
     const key = courseKey(video.subject_id, video.scholar_user_id);
     if (!courses.has(key)) courses.set(key, {
-      key, subjectId: video.subject_id, scholarId: video.scholar_user_id,
+      key, subjectId: video.subject_id, scholarId: video.scholar_user_id, payment:video.payment,
       title: video.subject_name, programme: video.degree_programme,
       ...classificationFields(video),
       universityId: video.university_id, university: video.scholar_university || video.university_label,
@@ -53,7 +53,7 @@ export function buildPurchased(catalog, bundles, legacy, progress, now = Date.no
       ...classificationFields(purchase),
       scholar: [purchase.scholar_fname, purchase.scholar_lname].filter(Boolean).join(' '), videos: []
     };
-    courses.set(key, { ...course, purchased: true, active, bundle: true });
+    courses.set(key, { ...course, payment:purchase.payment||course.payment, provider:purchase.provider, paidCurrency:purchase.currency, paidAmount:purchase.amount, purchased: true, active, bundle: true });
   });
   legacy.forEach(purchase => {
     const catalogCourse = catalog.find(course => course.videos.some(v => String(v.id) === String(purchase.video_id)));

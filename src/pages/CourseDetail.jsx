@@ -1,3 +1,4 @@
+import {paymentPrice,checkoutAllowed,checkoutBody,hostedRedirect,paymentLabel,paystackStatus,checkoutRequestKey} from '../utils/coursePayments.mjs';
 import { pagedGet } from '../utils/pagedCollection.mjs';
 // src/pages/CourseDetail.jsx
 import React, { useState, useEffect, useRef, useCallback } from "react";
@@ -13,18 +14,19 @@ import { authorizedLesson } from '../utils/contentAccess.mjs';
 import { courseCover } from '../utils/courseCovers.mjs';
 
 // Default bundle price (used as fallback)
-const DEFAULT_BUNDLE_PRICE = 6.00;
+// Price and provider are supplied by the authoritative offering response.
 
 // Checkout Component for Subject Bundle - Uses Stripe Checkout Session
-function BundleCheckoutForm({ subjectId, scholarId, subjectName, bundlePrice, onSuccess, onCancel }) {
+function BundleCheckoutForm({ subjectId, scholarId, subjectName, payment, onSuccess, onCancel }) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
 
-  const handleCheckout = async () => {
-    if (!termsAccepted) {
+  const handleCheckout = async (acceptedNow = false) => {
+    if (!checkoutAllowed(payment)) { setError('Checkout is unavailable for this offering.'); return; }
+    if (!termsAccepted && !acceptedNow) {
       setShowTermsModal(true);
       return;
     }
@@ -35,16 +37,16 @@ function BundleCheckoutForm({ subjectId, scholarId, subjectName, bundlePrice, on
     try {
       // Create Stripe Checkout Session
       const { data } = await axios.post(
-        `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/purchases/create-checkout-session`,
-        { subjectId, scholarId },
+        `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/course-payments/checkout`,
+        {...checkoutBody(subjectId,scholarId,payment),...(payment.provider==='paystack'?{idempotencyKey:checkoutRequestKey(window.sessionStorage,user.id,subjectId,scholarId)}:{})},
         { headers: { Authorization: `Bearer ${user.token}` } }
       );
 
       // Redirect to Stripe Checkout
-      if (data.url) {
-        window.location.href = data.url;
+      if (hostedRedirect(data.url,payment.provider)) {
+        window.location.href = hostedRedirect(data.url,payment.provider);
       } else {
-        setError("Failed to create checkout session");
+        setError(data.provider==='paystack'?'Checkout is pending or needs review. Do not pay again; check your payment status or contact support.':"Failed to create checkout session");setLoading(false);
       }
     } catch (err) {
       setError(err.response?.data?.message || "Failed to start checkout. Please try again.");
@@ -56,7 +58,7 @@ function BundleCheckoutForm({ subjectId, scholarId, subjectName, bundlePrice, on
     setTermsAccepted(true);
     setShowTermsModal(false);
     // Auto-proceed after accepting terms
-    handleCheckout();
+    handleCheckout(true);
   };
 
   return (
@@ -74,7 +76,7 @@ function BundleCheckoutForm({ subjectId, scholarId, subjectName, bundlePrice, on
         <div className="bg-light rounded p-3 mb-4">
           <div className="d-flex justify-content-between align-items-center">
             <span>Course Bundle Price</span>
-            <span className="fs-4 fw-bold text-success">€{bundlePrice.toFixed(2)}</span>
+            <span className="fs-4 fw-bold text-success">{paymentPrice(payment)}</span>
           </div>
           <small className="text-muted d-block mt-2">
             <i className="bi bi-check-circle-fill text-success me-1"></i>
@@ -86,7 +88,7 @@ function BundleCheckoutForm({ subjectId, scholarId, subjectName, bundlePrice, on
           </small>
           <small className="text-muted d-block">
             <i className="bi bi-check-circle-fill text-success me-1"></i>
-            Secure payment via Stripe
+            {paymentLabel(payment)}
           </small>
         </div>
 
@@ -95,8 +97,8 @@ function BundleCheckoutForm({ subjectId, scholarId, subjectName, bundlePrice, on
           <Button 
             variant="success" 
             size="lg" 
-            onClick={handleCheckout}
-            disabled={loading}
+            onClick={() => handleCheckout()}
+            disabled={loading || !checkoutAllowed(payment)}
           >
             {loading ? (
               <>
@@ -106,7 +108,7 @@ function BundleCheckoutForm({ subjectId, scholarId, subjectName, bundlePrice, on
             ) : (
               <>
                 <i className="bi bi-credit-card me-2"></i>
-                Proceed to Checkout - €{bundlePrice.toFixed(2)}
+                Proceed to {payment.provider==='paystack'?'Paystack Test ':''}Checkout - {paymentPrice(payment)}
               </>
             )}
           </Button>
@@ -130,7 +132,7 @@ function BundleCheckoutForm({ subjectId, scholarId, subjectName, bundlePrice, on
       show={showTermsModal}
       onHide={() => setShowTermsModal(false)}
       onAccept={handleTermsAccept}
-      context="purchase"
+      context="purchase" payment={payment}
     />
     </>
   );
@@ -153,16 +155,29 @@ function CourseDetail() {
   const [loading, setLoading] = useState(true);
   const [inLibrary, setInLibrary] = useState(false);
   const [addingToLibrary, setAddingToLibrary] = useState(false);
-  const [bundlePrice, setBundlePrice] = useState(DEFAULT_BUNDLE_PRICE);
+  const [payment,setPayment]=useState(null);
+  const bundlePrice=payment?.amountMinor==null?null:payment.amountMinor/100;
   const [playingVideo, setPlayingVideo] = useState(null); // Video playing in-page
   const [savedProgress, setSavedProgress] = useState(0);
   const [scholarId, setScholarId] = useState(urlScholarId); // Track actual scholarId
   const [paymentMessage, setPaymentMessage] = useState(null);
+  const paystackRequest=useRef(0);
+  const [verifiedRefresh,setVerifiedRefresh]=useState(0);
   const iframeRef = useRef(null);
   const playerRef = useRef(null);
   const videoPlayerRef = useRef(null); // Reference to video player card for scrolling
   const progressIntervalRef = useRef(null);
   const hasSeekRef = useRef(false); // Track if we've already seeked to saved position
+
+  const reconcilePaystack=useCallback(async()=>{
+    const orderId=searchParams.get('order');if(!user?.token||!orderId||!/^[a-f0-9-]{36}$/.test(orderId))return;
+    const request=++paystackRequest.current;
+    setPaymentMessage({type:'info',text:'Confirming payment with UniClips...'});
+    try{const {data}=await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/course-payments/verify`,{orderId},{headers:{Authorization:`Bearer ${user.token}`},timeout:30000});
+      if(request!==paystackRequest.current)return;const status=paystackStatus(data,subjectId,urlScholarId,orderId);setPaymentMessage(status);if(status.confirmed){setHasPurchasedBundle(true);setVerifiedRefresh(n=>n+1);}
+    }catch{if(request===paystackRequest.current)setPaymentMessage({type:'warning',text:'Payment status is unavailable. Check again before paying; contact support if it remains unresolved.'});}
+  },[searchParams,user?.token,subjectId,urlScholarId]);
+  useEffect(()=>{if(searchParams.get('payment')==='paystack')reconcilePaystack();return()=>{paystackRequest.current++;};},[searchParams,reconcilePaystack]);
 
   // Handle Stripe Checkout return
   useEffect(() => {
@@ -199,7 +214,7 @@ function CourseDetail() {
 
   useEffect(() => {
     const controller=new AbortController();
-    setLoading(true);setVideos([]);setCourse(null);setHasPurchasedBundle(false);
+    setLoading(true);setVideos([]);setCourse(null);setPayment(null);setHasPurchasedBundle(false);
     const fetchCourseData = async () => {
       try {
         // Fetch all videos
@@ -244,8 +259,10 @@ function CourseDetail() {
           setScholarId(firstVideo.scholar_user_id);
           
           // Get bundle price from the video data (comes from subjects table)
-          const price = firstVideo.bundle_price ? parseFloat(firstVideo.bundle_price) : DEFAULT_BUNDLE_PRICE;
-          setBundlePrice(price);
+          const {data:offering}=await pagedGet(axios,`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/course-payments/offering`,{params:{subjectId,scholarId:firstVideo.scholar_user_id},signal:controller.signal,timeout:15000});
+          if(controller.signal.aborted)return;
+          setPayment(offering.payment);
+          const price=offering.payment?.amountMinor==null?null:offering.payment.amountMinor/100;
           
           setCourse({
             subject_id: firstVideo.subject_id,
@@ -272,7 +289,7 @@ function CourseDetail() {
 
     fetchCourseData();
     return()=>controller.abort();
-  }, [subjectId, urlScholarId, navigate,user?.token]);
+  }, [subjectId, urlScholarId, navigate,user?.token,verifiedRefresh]);
 
   useEffect(() => {
     if (!user || !scholarId) return;
@@ -283,7 +300,7 @@ function CourseDetail() {
         const res = await pagedGet(axios,
           `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/purchases/subject/check`,
           { 
-            params: { subjectId, scholarId },
+            params: {subjectId,scholarId},
             headers: { Authorization: `Bearer ${user.token}` } 
           }
         );
@@ -300,7 +317,7 @@ function CourseDetail() {
         const res = await pagedGet(axios,
           `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/library/check`,
           { 
-            params: { subjectId, scholarId },
+            params: {subjectId,scholarId},
             headers: { Authorization: `Bearer ${user.token}` } 
           }
         );
@@ -566,6 +583,7 @@ function CourseDetail() {
           onClose={() => setPaymentMessage(null)}
         >
           {paymentMessage.text}
+          {searchParams.get('payment')==='paystack'&&!paymentMessage.confirmed&&<Button variant="link" onClick={reconcilePaystack}>Check payment status</Button>}
         </Alert>
       )}
       
@@ -616,8 +634,8 @@ function CourseDetail() {
                   <strong>1st Video</strong> Free
                 </div>
                 <div>
-                  <i className="bi bi-currency-euro me-2"></i>
-                  <strong>€{bundlePrice.toFixed(2)}</strong> Full Course
+                  <i className="bi bi-wallet2 me-2" aria-hidden="true"></i>
+                  <strong>{paymentPrice(payment)}</strong> Full Course
                 </div>
               </div>
             </Col>
@@ -693,10 +711,10 @@ function CourseDetail() {
                           variant="success" 
                           size="lg" 
                           className="w-100 mb-2"
-                          onClick={() => setShowCheckout(true)}
+                          disabled={!checkoutAllowed(payment)} onClick={() => setShowCheckout(true)}
                         >
                           <i className="bi bi-unlock-fill me-2"></i>
-                          Unlock Full Course - €{bundlePrice.toFixed(2)}
+                          {checkoutAllowed(payment)?`Unlock Full Course - ${paymentPrice(payment)}${payment.provider==='paystack'?' · Paystack test':''}`:paymentLabel(payment)}
                         </Button>
                       ) : (
                         <Button 
@@ -748,7 +766,7 @@ function CourseDetail() {
                   
                   <p className="text-muted text-center mb-0 small">
                     <i className="bi bi-shield-check me-1"></i>
-                    First video free • €{bundlePrice.toFixed(2)} for full access
+                    First video free • {paymentPrice(payment)} for full access
                   </p>
                 </Card.Body>
               </Card>
@@ -969,7 +987,7 @@ function CourseDetail() {
               subjectId={parseInt(subjectId)}
               scholarId={parseInt(scholarId)}
               subjectName={course?.subject_name}
-              bundlePrice={bundlePrice}
+              payment={payment}
               onSuccess={handlePurchaseSuccess}
               onCancel={() => setShowCheckout(false)}
             />

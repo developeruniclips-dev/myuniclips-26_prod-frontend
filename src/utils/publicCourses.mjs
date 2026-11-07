@@ -6,7 +6,7 @@ export function publishedCourses(videos) {
     const key = `${video.subject_id}-${video.scholar_user_id}`;
     if (!groups.has(key)) groups.set(key, {id:key, subjectId:video.subject_id, subjectName:video.subject_name,
       degreeProgramme:video.degree_programme, ...classificationFields(video), universityId:video.university_id,
-      scholarId:video.scholar_user_id, scholarName:`${video.scholar_fname} ${video.scholar_lname}`,
+      payment:video.payment, scholarId:video.scholar_user_id, scholarName:`${video.scholar_fname} ${video.scholar_lname}`,
       scholarInitials:`${video.scholar_fname?.[0] || ''}${video.scholar_lname?.[0] || ''}`,
       university:video.university_label || video.scholar_university || 'University not specified', videos:[]});
     groups.get(key).videos.push(video);

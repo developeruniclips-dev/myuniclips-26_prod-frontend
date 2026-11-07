@@ -1,3 +1,4 @@
+import {financialMoney} from './coursePayments.mjs';
 export function paymentStatus(result, subjectId, scholarId) {
     if (result?.success === true && result.state === 'fulfilled' &&
         String(result.subjectId) === String(subjectId) && String(result.scholarId) === String(scholarId)) {
@@ -8,5 +9,5 @@ export function paymentStatus(result, subjectId, scholarId) {
     return { confirmed: false, type: 'info', text: 'Payment is still processing. Refresh to check again; please do not pay again.' };
 }
 export function formatMoney(value, currency = 'EUR') {
-    return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(Number(value || 0));
+    return financialMoney(value,currency);
 }

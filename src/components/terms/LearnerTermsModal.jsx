@@ -55,7 +55,7 @@ Questions? Email us at: support@myuniclips.com
 Last updated: January 2026
 `;
 
-function LearnerTermsModal({ show, onHide, onAccept, loading = false, context = 'signup' }) {
+function LearnerTermsModal({ show, onHide, onAccept, loading = false, context = 'signup', payment }) {
     const [accepted, setAccepted] = useState(false);
 
     const handleAccept = () => {
@@ -96,7 +96,7 @@ function LearnerTermsModal({ show, onHide, onAccept, loading = false, context = 
             </Modal.Header>
             <Modal.Body style={{ maxHeight: '60vh', overflowY: 'auto' }}>
                 <div className="terms-content p-3 bg-light rounded" style={{ whiteSpace: 'pre-line' }}>
-                    {LEARNER_TERMS_CONTENT}
+                    {payment?.provider==='paystack'?`${payment.checkoutEnabled&&payment.checkoutMode==='test'?'Authorized Paystack test checkout only. No live payment is enabled.':'Nigerian course checkout is not enabled.'} The approved course price is NGN 1,500 including learner-facing processing charges. Access lasts five calendar months. Repeat and expired-access repurchases are blocked. No automatic renewals, refunds or access revocations. Final Nigeria commercial terms require approval before live activation.`:LEARNER_TERMS_CONTENT}
                 </div>
                 {context === 'purchase' && (
                     <div className="alert alert-info mt-3">

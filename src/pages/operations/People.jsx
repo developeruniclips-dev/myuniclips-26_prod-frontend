@@ -29,7 +29,7 @@ function PersonRecords({ personId, section }) {
 }
 export function TransactionTable({ rows }) {
   return <Table rows={rows} columns={[
-    ['Reference', r => <><span className="ops-reference">{r.reference}</span><small>{r.provider} · {date(r.created_at)}</small></>], ['Learner / course', r => <>{r.learner}<small>{r.reference.startsWith('video-') ? 'Historical video record' : r.course || 'Historical course'} · Scholar: {r.scholar || 'Not recorded'}</small></>], ['Amount', r => formatMoney(r.amount, r.currency)], ['Payment', r => <><Badge>{r.status}</Badge>{r.reference.startsWith('video-') && <small>Retained history; excluded from course totals and Scholar earnings/payable balance.</small>}</>], ['Entitlement', r => r.active == null ? 'Not recorded / not fulfilled' : <>{r.active ? 'Active' : 'Expired / inactive'}<small>Expires: {date(r.access_expires_at)}</small></>]
+    ['Reference', r => <><span className="ops-reference">{r.reference}</span><small>{r.provider} / {r.entity||'Unreconciled'} / {r.verificationState||r.status} / {date(r.created_at)}</small></>], ['Learner / course', r => <>{r.learner}<small>{r.reference.startsWith('video-') ? 'Historical video record' : r.course || 'Historical course'} · Scholar: {r.scholar || 'Not recorded'}</small></>], ['Amount', r => formatMoney(r.amount, r.currency)], ['Payment', r => <><Badge>{r.status}</Badge>{r.reference.startsWith('video-') && <small>Retained history; excluded from course totals and Scholar earnings/payable balance.</small>}</>], ['Entitlement', r => r.active == null ? 'Not recorded / not fulfilled' : <>{r.active ? 'Active' : 'Expired / inactive'}<small>Expires: {date(r.access_expires_at)}</small></>]
   ]} />;
 }
 export function Transactions() {

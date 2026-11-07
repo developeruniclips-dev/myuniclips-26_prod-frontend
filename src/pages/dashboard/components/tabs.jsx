@@ -1,4 +1,5 @@
 import { pagedGet } from '../../../utils/pagedCollection.mjs';
+import { recordedSales } from '../../../utils/coursePayments.mjs';
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
@@ -43,8 +44,8 @@ export default function ScholarTabs() {
       setData({ profile, scholar });
       if (scholar?.approved) {
         const names = ['courses', 'videos', 'earnings', 'stripe'];
-        const paths = ['/scholar-subjects/status', '/videos/scholar/my-videos', '/stripe-connect/earnings', '/stripe-connect/account-status'];
-        const results = await Promise.allSettled(paths.map(path => pagedGet(axios,`${api}${path}`, config)));
+        const paths = ['/scholar-subjects/status', '/videos/scholar/my-videos', '/course-payments/earnings', '/stripe-connect/account-status'];
+        const results = await Promise.allSettled(paths.map(path => path==='/stripe-connect/account-status'&&scholar?.profile?.country_code!=='FI'&&!scholar?.profile?.stripe_account_id?Promise.resolve({data:null}):pagedGet(axios,`${api}${path}`, config)));
         if (!active) return;
         const next = { profile, scholar };
         results.forEach((result, index) => { next[names[index]] = result.status === 'fulfilled' ? result.value.data : null; });
@@ -61,11 +62,12 @@ export default function ScholarTabs() {
   const courses = data.courses?.subjects;
   const videos = data.videos?.videos;
   const summary = data.earnings?.summary;
+  const sales = recordedSales(data.earnings);
   const stats = [
     [BookOpen, 'Total Courses', courses?.length ?? '\u2014'],
-    [ShoppingBag, 'Total Sales', summary?.totalSales ?? '\u2014'],
-    [TrendingUp, "This Month's Sales", summary?.monthlySales ?? '\u2014'],
-    [Wallet, 'Total Earnings', money(summary?.scholarEarnings)]
+    [ShoppingBag, 'Total Sales', sales?.totalSales ?? '\u2014'],
+    [TrendingUp, "This Month's Sales", sales?.monthlySales ?? '\u2014'],
+    [Wallet, 'EUR Earnings', money(summary?.scholarEarnings)]
   ];
   return <main className="scholar-shell">
     <div className="scholar-topline"><span>MY UNICLIPS / SCHOLAR WORLD</span><Link to="/dashboard">Learner Dashboard &rarr;</Link></div>

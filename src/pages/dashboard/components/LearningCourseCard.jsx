@@ -1,3 +1,4 @@
+import {paymentLabel,financialMoney} from '../../../utils/coursePayments.mjs';
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { learningHref } from '../learnerData.mjs';
@@ -19,6 +20,7 @@ export default function LearningCourseCard({ course, saved, onSave, saving, feat
       <h3><Link to={learningHref(course)}>{course.title}</Link></h3>
       {course.university && <p className="learning-course-meta">{course.university}</p>}
       {course.scholar && <p className="learning-course-meta"><i className="bi bi-person" aria-hidden="true" /> {course.scholar}</p>}
+      <p className="learning-course-meta">{course.purchased?`${financialMoney(course.paidAmount,course.paidCurrency)} ? ${course.provider||'Unreconciled'}`:paymentLabel(course.payment)}</p>
       {course.totalVideos > 0 && <p className="learning-course-meta"><i className="bi bi-play-circle" aria-hidden="true" /> {course.totalVideos} {course.purchased && !course.bundle ? 'purchased lessons' : 'videos'}</p>}
       {course.purchased && progress && <div className="learning-progress">
         <div><span>{progress.started ? `${progress.watched} of ${progress.total} lessons completed` : 'Not started yet'}</span><strong>{progress.percent}%</strong></div>
