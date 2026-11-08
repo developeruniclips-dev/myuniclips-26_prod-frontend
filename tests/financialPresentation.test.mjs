@@ -40,6 +40,41 @@ test('Paystack return reconciles through authenticated backend and retains a pen
  render(h(MemoryRouter,{initialEntries:[`/course/123/7?payment=paystack&order=${id}&success=true&reference=forged`]},h(Routes,null,h(Route,{path:'/course/:subjectId/:scholarId',element:h(CourseDetail)}))));
  await screen.findByText(/Payment is pending verification/);assert.equal(verifies,1);assert.equal(screen.queryByText(/Payment verified/),null);fireEvent.click(screen.getByRole('button',{name:'Check payment status'}));await waitFor(()=>assert.equal(verifies,2));
 });
+function deferred(){let resolve;const promise=new Promise(r=>{resolve=r;});return {promise,resolve};}
+function paidCourseReturn({staleInitial=false,purchased=true}={}){
+ const orderId='00000000-0000-0000-0000-000000000002',verification=deferred(),initialCourse=deferred();let reads=0,verifies=0,confirmed=false;
+ const videos=[{id:1,subject_id:123,scholar_user_id:7,approved:1,title:'Preview',sequence_index:1,is_first_preview:1},{id:2,subject_id:123,scholar_user_id:7,approved:1,title:'Paid lesson',sequence_index:2,is_first_preview:0}];
+ axios.get=async(url,config)=>{const p=new URL(url).pathname;
+  if(p.endsWith('/videos/all-videos'))return {data:{videos}};
+  if(p.endsWith('/videos/courses/123/7')){reads++;assert.match(config.headers.Authorization,/Bearer /);if(staleInitial&&reads===1)return initialCourse.promise;return {data:{hasPurchased:purchased&&confirmed,videos:videos.map(v=>({...v,can_access:purchased&&confirmed||v.id===1}))}};}
+  if(p.endsWith('/course-payments/offering'))return {data:{payment:{provider:'paystack',currency:'NGN',amountMinor:150000,checkoutEnabled:true,checkoutMode:'test',contextVersion:'ng'}}};
+  if(p.endsWith('/purchases/subject/check'))return {data:{hasPurchased:false}};
+  if(p.endsWith('/library/check'))return {data:{inLibrary:false}};
+  throw Error('Unexpected offline GET');
+ };
+ axios.post=async(url,body)=>{assert.match(url,/\/course-payments\/verify$/);assert.deepEqual(body,{orderId});verifies++;return verification.promise;};
+ render(h(MemoryRouter,{initialEntries:[`/course/123/7?payment=paystack&order=${orderId}&success=true`]},h(Routes,null,h(Route,{path:'/course/:subjectId/:scholarId',element:h(CourseDetail)}))));
+ return {reads:()=>reads,verifies:()=>verifies,confirm:()=>{confirmed=true;verification.resolve({data:{provider:'paystack',orderId,subjectId:123,scholarId:7,currency:'NGN',amountMinor:150000,state:'fulfilled',success:true}});},releaseStale:()=>initialCourse.resolve({data:{hasPurchased:false,videos}})};
+}
+
+test('verified Paystack return retains authoritative purchased state after the course refresh',async()=>{
+ const f=paidCourseReturn();await screen.findByRole('button',{name:/Unlock Full Course/});f.confirm();
+ await screen.findByText(/Payment verified/);await waitFor(()=>assert.ok(f.reads()>=2));
+ await screen.findByRole('button',{name:'Continue Learning'});assert.ok(screen.getByText('Course Purchased'));assert.equal(screen.queryByText('Requires Bundle'),null);assert.equal(screen.queryByRole('button',{name:/Unlock Full Course/}),null);assert.equal(f.verifies(),1);
+});
+
+test('a cancelled pre-verification course response cannot undo the refreshed entitlement',async()=>{
+ const f=paidCourseReturn({staleInitial:true});await waitFor(()=>assert.equal(f.reads(),1));f.confirm();
+ await screen.findByRole('button',{name:'Continue Learning'});await React.act(async()=>{f.releaseStale();});
+ assert.ok(screen.getByText('Course Purchased'));assert.equal(screen.queryByText('Requires Bundle'),null);assert.equal(f.verifies(),1);
+});
+
+test('fulfilled payment does not override a current course response denying active access',async()=>{
+ const f=paidCourseReturn({purchased:false});await screen.findByRole('button',{name:/Unlock Full Course/});f.confirm();
+ await screen.findByText(/Payment verified/);await waitFor(()=>assert.ok(f.reads()>=2));await screen.findByText('Requires Bundle');
+ assert.equal(screen.queryByRole('button',{name:'Continue Learning'}),null);assert.equal(screen.queryByText('Course Purchased'),null);
+});
+
 test('held Nigerian earnings are separate from EUR and expose no Stripe payout control',()=>{
  render(h(ScholarEarnings,{countryCode:'NG',token:'synthetic',stripe:null,data:{summary:{currency:'EUR',totalSales:0},breakdowns:[{entity:'UNICLIPS_NIGERIA_LIMITED',provider:'paystack',currency:'NGN',scholarMinor:75000,recordedGrossMinor:150000,unreconciledSales:0}],salesByCourse:[],payoutHistory:[]}}));
  assert.match(document.body.textContent,/NGN.*paystack/);assert.match(document.body.textContent,/Held.*no automatic payouts/);assert.equal(screen.queryByRole('button',{name:/Stripe/}),null);

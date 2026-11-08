@@ -174,7 +174,7 @@ function CourseDetail() {
     const request=++paystackRequest.current;
     setPaymentMessage({type:'info',text:'Confirming payment with UniClips...'});
     try{const {data}=await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/course-payments/verify`,{orderId},{headers:{Authorization:`Bearer ${user.token}`},timeout:30000});
-      if(request!==paystackRequest.current)return;const status=paystackStatus(data,subjectId,urlScholarId,orderId);setPaymentMessage(status);if(status.confirmed){setHasPurchasedBundle(true);setVerifiedRefresh(n=>n+1);}
+      if(request!==paystackRequest.current)return;const status=paystackStatus(data,subjectId,urlScholarId,orderId);setPaymentMessage(status);if(status.confirmed){setVerifiedRefresh(n=>n+1);}
     }catch{if(request===paystackRequest.current)setPaymentMessage({type:'warning',text:'Payment status is unavailable. Check again before paying; contact support if it remains unresolved.'});}
   },[searchParams,user?.token,subjectId,urlScholarId]);
   useEffect(()=>{if(searchParams.get('payment')==='paystack')reconcilePaystack();return()=>{paystackRequest.current++;};},[searchParams,reconcilePaystack]);
@@ -242,6 +242,7 @@ function CourseDetail() {
         if(user && urlScholarId && subjectVideos.length){
           const {data}=await pagedGet(axios,`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/videos/courses/${subjectId}/${urlScholarId}`,{headers:{Authorization:`Bearer ${user.token}`},signal:controller.signal});
           if(controller.signal.aborted)return;
+          setHasPurchasedBundle(data.hasPurchased===true);
           subjectVideos=subjectVideos.map(v=>({...v,...data.videos.find(meta=>Number(meta.id)===Number(v.id))}));
         }
         setVideos(subjectVideos);
@@ -294,23 +295,6 @@ function CourseDetail() {
   useEffect(() => {
     if (!user || !scholarId) return;
     
-    // Check if user has purchased this subject bundle
-    const checkBundlePurchase = async () => {
-      try {
-        const res = await pagedGet(axios,
-          `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/purchases/subject/check`,
-          { 
-            params: {subjectId,scholarId},
-            headers: { Authorization: `Bearer ${user.token}` } 
-          }
-        );
-        setHasPurchasedBundle(res.data.hasPurchased);
-      } catch (err) {
-        console.error("Error checking bundle purchase:");
-      }
-    };
-    checkBundlePurchase();
-
     // Check if course is in library
     const checkLibrary = async () => {
       try {
