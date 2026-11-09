@@ -1,4 +1,4 @@
-import { Container, Row, Col, Card } from "react-bootstrap";
+import { Container, Row, Col } from "react-bootstrap";
 
 function Stats() {
   const features = [
@@ -45,16 +45,8 @@ function Stats() {
         <Row className="g-4">
           {features.map((feature, index) => (
             <Col lg={3} md={6} key={index}>
-              <Card 
-                className="h-100 border-0 text-center feature-card"
-                style={{ 
-                  background: 'rgba(255,255,255,0.05)', 
-                  backdropFilter: 'blur(10px)',
-                  borderRadius: '20px',
-                  transition: 'all 0.3s ease'
-                }}
-              >
-                <Card.Body className="p-4">
+              <div className="h-100 text-center feature-card">
+                <div className="p-4">
                   <div 
                     className="feature-icon mx-auto mb-4 d-flex align-items-center justify-content-center rounded-circle"
                     style={{ 
@@ -70,8 +62,8 @@ function Stats() {
                   <p className="text-white-50 mb-0" style={{ fontSize: '0.95rem', lineHeight: 1.6 }}>
                     {feature.description}
                   </p>
-                </Card.Body>
-              </Card>
+                </div>
+              </div>
             </Col>
           ))}
         </Row>

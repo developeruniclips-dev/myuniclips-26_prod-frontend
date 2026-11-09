@@ -1,16 +1,17 @@
 import { pagedGet } from '../../utils/pagedCollection.mjs';
 // src/pages/dashboard/VideoUploadPage.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../../context/temp";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
-import { Card, Form, Button, Spinner, Alert, Container, Badge } from "react-bootstrap";
+import { Card, Form, Button, Alert, Container, Badge } from "react-bootstrap";
 import ScholarTermsModal from "../../components/terms/ScholarTermsModal";
 
 import VideoMetadataFields, { metadataError } from './components/VideoMetadataFields';
 import useCourseLimits from './components/useCourseLimits';
 import './scholarDashboard.css';
 import {canEditCourse,workflowLabel} from '../../utils/reviewReadiness.mjs';
+import {uploadProgress} from '../../utils/uploadProgress.mjs';
 
 function VideoUploadPage() {
   const { user } = useAuth();
@@ -21,6 +22,9 @@ function VideoUploadPage() {
 
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [progress,setProgress]=useState(0);
+  const uploadPending=useRef(false);
+  useEffect(()=>{if(!uploading)return;const warn=event=>{event.preventDefault();event.returnValue='';};window.addEventListener('beforeunload',warn);return()=>window.removeEventListener('beforeunload',warn);},[uploading]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [sequenceIndex, setSequenceIndex] = useState("1");
@@ -46,7 +50,7 @@ function VideoUploadPage() {
         );
         const approvedSubjects = res.data.subjects.filter(s => s.approved === 1);
         setSubjects(approvedSubjects);
-        
+
         // Check if subject_id is in URL params
         const urlSubjectId = searchParams.get('subject_id');
         if (urlSubjectId && approvedSubjects.some(s => s.subject_id === parseInt(urlSubjectId))) {
@@ -71,7 +75,7 @@ function VideoUploadPage() {
         setVideoCounts(counts);
         setVideosLoaded(true);
         setMaxSequences(maxSequences);
-        
+
         // Set initial sequence for the first subject
         const initialSubjectId = urlSubjectId || (approvedSubjects.length > 0 ? approvedSubjects[0].subject_id : null);
         if (initialSubjectId) {
@@ -121,8 +125,9 @@ function VideoUploadPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if(uploadPending.current)return;
     if(!canEditCourse(workflow)){setError('This course is locked or its editing permission is unavailable.');return;}
-    
+
     if (!termsAccepted) {
       setShowTermsModal(true);
       return;
@@ -144,7 +149,9 @@ function VideoUploadPage() {
     }
     const textError = metadataError(title, description, limits);
     if (textError) { setError(textError); return; }
+    uploadPending.current=true;
     setUploading(true);
+    setProgress(0);
     setError("");
 
     try {
@@ -155,10 +162,11 @@ function VideoUploadPage() {
       formData.append("sequenceIndex", sequenceIndex);
       formData.append("subjectId", subjectId);
 
-      await axios.post(
+      const response=await axios.post(
         `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/videos?subjectId=${encodeURIComponent(subjectId)}`,
         formData,
         {
+          onUploadProgress:event=>setProgress(previous=>uploadProgress(event,previous)),
           headers: {
             "Content-Type": "multipart/form-data",
             Authorization: `Bearer ${user.token}`,
@@ -166,15 +174,16 @@ function VideoUploadPage() {
         }
       );
 
+      if(response.status!==201||response.data?.uploadAccepted!==true)throw new Error('Upload acknowledgement unavailable');
+      setProgress(100);
       setUploading(false);
-      alert("Upload accepted. Video readiness will be checked in course review; processing may still be underway.");
-      navigate(`/manage-course/${subjectId}`);
+      navigate(`/manage-course/${subjectId}`,{state:{uploadSaved:true}});
     } catch (err) {
       setUploading(false);
       const reference = err.response?.data?.uploadReference;
       const supportReference = typeof reference === 'string' && /^[0-9a-f-]{36}$/.test(reference) ? ` Upload reference: ${reference}.` : '';
-      setError((err.response?.data?.message || "Upload failed. Please try again.") + supportReference);
-    }
+      setError((err.response?.data?.message || "We could not confirm that your upload was saved. Check Manage Course or contact support before uploading again.") + supportReference);
+    }finally{uploadPending.current=false;}
   };
 
   if (loadingSubjects) return <Container className="py-5 scholar-management"><Link to="/scholar-dashboard" className="btn btn-outline-primary mb-3">Scholar Dashboard</Link><p role="status">Loading your courses…</p></Container>;
@@ -213,7 +222,8 @@ function VideoUploadPage() {
           <p>Status: {workflowLabel(workflow?.workflow?.state)}{workflow&&!canEditCourse(workflow)&&' — course editing is locked.'}</p>
 
           <Form onSubmit={handleSubmit}>
-            <Form.Group className="mb-4">
+            <fieldset disabled={uploading}>
+            <Form.Group className="mb-4" controlId="upload-video-file">
               <Form.Label className="fw-semibold">Video File <span className="text-danger">*</span></Form.Label>
               <Form.Control
                 type="file"
@@ -235,7 +245,7 @@ function VideoUploadPage() {
 
             <Form.Group className="mb-4">
               <Form.Label className="fw-semibold">Subject <span className="text-danger">*</span></Form.Label>
-              <Form.Select 
+              <Form.Select
                 value={subjectId}
                 onChange={(e) => setSubjectId(e.target.value)}
                 required
@@ -297,14 +307,14 @@ function VideoUploadPage() {
             <Form.Group className="mb-4">
               <Form.Check
                 type="checkbox"
-                id="scholar-terms-checkbox"
+                id="upload-scholar-terms-checkbox"
                 checked={termsAccepted}
                 onChange={() => setShowTermsModal(true)}
                 label={
                   <span>
                     I agree to the{" "}
-                    <span 
-                      className="text-primary" 
+                    <span
+                      className="text-primary"
                       style={{ cursor: 'pointer', textDecoration: 'underline' }}
                       onClick={(e) => { e.preventDefault(); setShowTermsModal(true); }}
                     >
@@ -316,9 +326,9 @@ function VideoUploadPage() {
             </Form.Group>
 
             <div className="d-grid">
-              <Button 
-                type="submit" 
-                variant="primary" 
+              <Button
+                type="submit"
+                variant="primary"
                 size="lg"
                 disabled={uploading || !canEditCourse(workflow) || !termsAccepted || !limits || !videosLoaded || !file || (videoCounts[subjectId] || 0) >= MAX_VIDEOS_PER_SUBJECT}
                 className="py-3 fw-semibold"
@@ -326,8 +336,7 @@ function VideoUploadPage() {
               >
                 {uploading ? (
                   <>
-                    <Spinner animation="border" size="sm" className="me-2" />
-                    Uploading... Please wait
+                    {progress>=99?'Finishing upload…':'Uploading video…'}
                   </>
                 ) : (
                   <>
@@ -338,9 +347,15 @@ function VideoUploadPage() {
               </Button>
             </div>
 
+            {uploading&&<div className="mt-3" role="status" aria-live="polite">
+              <div className="progress"><div className="progress-bar" role="progressbar" aria-label="Video upload progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress} style={{width:`${progress}%`}}>{progress}%</div></div>
+              <p className="mt-2 mb-0">{progress>=99?'File sent. Finishing the transfer and saving your draft. Keep this page open.':'Sending your video. Keep this page open until your draft is saved.'}</p>
+            </div>}
+
             <p className="text-center text-muted mt-3 mb-0">
-              <small>Your video will be reviewed before being published</small>
+              <small>After upload, video preparation can take several minutes, or longer for large files. Your draft will be saved, but preview and course submission become available only when preparation finishes.</small>
             </p>
+            </fieldset>
           </Form>
         </Card.Body>
       </Card>

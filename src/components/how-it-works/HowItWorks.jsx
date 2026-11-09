@@ -1,11 +1,15 @@
 import { Container, Row, Col } from "react-bootstrap";
+import {Link} from 'react-router-dom';
+import {useAuth} from '../../context/temp';
 
 function HowItWorks() {
+  const {user}=useAuth();
   const steps = [
     {
       number: "01",
       icon: "bi-person-plus-fill",
       title: "Create Your Account",
+      to:user?'/dashboard':'/register',
       description: "Sign up for free and set up your learner profile in just a few minutes.",
       color: "#6366f1"
     },
@@ -13,6 +17,7 @@ function HowItWorks() {
       number: "02", 
       icon: "bi-search",
       title: "Browse Courses",
+      to:'/all-videos',
       description: "Explore our catalog of courses from expert scholars. First video is always free!",
       color: "#8b5cf6"
     },
@@ -20,6 +25,7 @@ function HowItWorks() {
       number: "03",
       icon: "bi-play-btn-fill",
       title: "Start Learning",
+      to:user?'/dashboard':'/all-videos',
       description: "Watch high-quality video lessons at your own pace, anywhere, anytime.",
       color: "#06b6d4"
     }
@@ -49,8 +55,8 @@ function HowItWorks() {
           
           {steps.map((step, index) => (
             <Col lg={4} md={6} key={index}>
-              <div 
-                className="step-card text-center p-4 bg-white rounded-4 shadow-sm position-relative h-100"
+              <Link to={step.to}
+                className="step-card d-block text-decoration-none text-body text-center p-4 bg-white rounded-4 shadow-sm position-relative h-100"
                 style={{ zIndex: 1 }}
               >
                 <div 
@@ -87,9 +93,9 @@ function HowItWorks() {
                   <i className={`bi ${step.icon}`} style={{ fontSize: '2rem', color: step.color }}></i>
                 </div>
                 
-                <h4 className="fw-bold mb-3">{step.title}</h4>
+                <h4 className="fw-bold mb-3 text-decoration-underline">{step.title}</h4>
                 <p className="text-muted mb-0">{step.description}</p>
-              </div>
+              </Link>
             </Col>
           ))}
         </Row>

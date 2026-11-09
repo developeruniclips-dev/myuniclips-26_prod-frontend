@@ -1,4 +1,4 @@
-import { Container, Row, Col, Button } from "react-bootstrap";
+import { Container, Row, Col } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/temp";
 
@@ -28,51 +28,35 @@ function CallToAction() {
           <Col lg={4} className="text-lg-end">
             {!user ? (
               <div className="d-flex gap-3 justify-content-lg-end flex-wrap">
-                <Link to="/register">
-                  <Button 
-                    variant="light" 
-                    size="lg" 
-                    className="px-4 fw-semibold"
+                  <Link to="/register"
+                    className="btn btn-light btn-lg px-4 fw-semibold"
                     style={{ borderRadius: '25px' }}
                   >
                     <i className="bi bi-person-plus me-2"></i>
                     Sign Up Free
-                  </Button>
-                </Link>
-                <Link to="/all-videos">
-                  <Button 
-                    variant="outline-light" 
-                    size="lg" 
-                    className="px-4 fw-semibold"
+                  </Link>
+                  <Link to="/all-videos"
+                    className="btn btn-outline-light btn-lg px-4 fw-semibold"
                     style={{ borderRadius: '25px' }}
                   >
                     Browse Courses
-                  </Button>
-                </Link>
+                  </Link>
               </div>
             ) : (
               <div className="d-flex gap-3 justify-content-lg-end flex-wrap">
-                <Link to="/all-videos">
-                  <Button 
-                    variant="light" 
-                    size="lg" 
-                    className="px-4 fw-semibold"
+                  <Link to="/all-videos"
+                    className="btn btn-light btn-lg px-4 fw-semibold"
                     style={{ borderRadius: '25px' }}
                   >
                     <i className="bi bi-collection-play me-2"></i>
                     Explore Courses
-                  </Button>
-                </Link>
-                <Link to="/become-scholar">
-                  <Button 
-                    variant="outline-light" 
-                    size="lg" 
-                    className="px-4 fw-semibold"
+                  </Link>
+                  <Link to="/become-scholar"
+                    className="btn btn-outline-light btn-lg px-4 fw-semibold"
                     style={{ borderRadius: '25px' }}
                   >
                     Become a Scholar
-                  </Button>
-                </Link>
+                  </Link>
               </div>
             )}
           </Col>

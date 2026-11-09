@@ -218,18 +218,18 @@ body {
 
 /* Features Section */
 .features-section .feature-card {
-  cursor: pointer;
+  cursor: default;
+  background: transparent;
+  box-shadow: none;
 }
 
 .features-section .feature-card:hover {
-  transform: translateY(-10px) !important;
-  background: rgba(255,255,255,0.1) !important;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  transform: none !important;
+  box-shadow: none;
 }
 
 .features-section .feature-card:hover .feature-icon {
-  transform: scale(1.1) rotate(5deg);
-  transition: transform 0.3s ease;
+  transform: none;
 }
 
 .features-section .feature-icon {
@@ -249,6 +249,10 @@ body {
 .step-card:hover .step-icon {
   transform: scale(1.1);
 }
+.step-card:focus-visible { outline: 3px solid #6366f1; outline-offset: 5px; }
+/* Decorative layers must never intercept signup or course links. */
+.cta-section::before, .cta-section::after, .hero-section::before { pointer-events: none; }
+.cta-section > .container { position: relative; z-index: 1; }
 
 /* Testimonials */
 .testimonial-card {

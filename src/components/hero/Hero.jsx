@@ -2,10 +2,12 @@ import { useState } from "react";
 import { Container, Row, Col, Form, InputGroup, Button } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
 import heroImg from '../../assets/study.jpg';
+import {useAuth} from '../../context/temp';
 
 function Hero() {
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
+  const {user}=useAuth();
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -29,6 +31,7 @@ function Hero() {
             <p className="fs-3 mb-4 opacity-90 mx-auto" style={{ maxWidth: '700px' }}>
               Access world-class education from top scholars. Start your journey today.
             </p>
+            {!user&&<div className="mb-4"><Link to="/login" className="text-white fw-semibold">Login — continue where you left off</Link><p className="mt-2 mb-0">Don’t have an account? <Link to="/register" className="text-white fw-bold text-decoration-underline">Sign up free</Link></p></div>}
             
             {/* V-shape aligned elements */}
             <div className="d-flex flex-column align-items-center">
@@ -48,12 +51,10 @@ function Hero() {
                 </InputGroup>
               </Form>
               
-              <Link to="/all-videos" className="mb-5">
-                <Button variant="light" size="lg" className="px-4 py-2" style={{ fontSize: '1.1rem' }}>
+                <Button as={Link} to="/all-videos" variant="light" size="lg" className="px-4 py-2 mb-5" style={{ fontSize: '1.1rem' }}>
                   <i className="bi bi-collection-play me-2"></i>
                   Explore Courses
                 </Button>
-              </Link>
             </div>
           </Col>
         </Row>

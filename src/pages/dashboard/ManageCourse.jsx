@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useLocation } from 'react-router-dom';
 import { ArrowUp, ArrowDown, Plus, Pencil, Trash2 } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../../context/temp';
@@ -11,10 +11,11 @@ import {canEditCourse,workflowLabel} from '../../utils/reviewReadiness.mjs';
 
 export default function ManageCourse() {
   const { subjectId } = useParams();
+  const location=useLocation();
   const { user } = useAuth();
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
+  const [notice, setNotice] = useState(location.state?.uploadSaved?'Uploaded to draft. Video preparation may still be in progress. Preview and submission become available when it finishes. You can return later; do not upload the same lesson again.':'');
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState(null);
   const [preview, setPreview] = useState(null);

@@ -49,7 +49,7 @@ function TopNavBar({ showLinks = true }) {
           🎓 UNICLIPS
         </Navbar.Brand>
 
-        <Navbar.Toggle aria-controls="navbar-nav" className="border-0 text-white" />
+        <Navbar.Toggle aria-controls="navbar-nav" aria-expanded={expanded} className="border-0 text-white" />
         
         <Navbar.Collapse id="navbar-nav">
           {showLinks && (
@@ -104,6 +104,8 @@ function TopNavBar({ showLinks = true }) {
 
               {/* Show Login button only when user is NOT logged in */}
               {!user && (
+                <>
+                <Nav.Link as={Link} to="/register" className="px-3 fw-semibold text-white" onClick={handleNavClick}>Sign Up</Nav.Link>
                 <Button
                   as={Link}
                   to="/login"
@@ -114,6 +116,7 @@ function TopNavBar({ showLinks = true }) {
                 >
                   Login
                 </Button>
+                </>
               )}
 
               {/* Show Logout button when user IS logged in */}
