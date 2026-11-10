@@ -1,4 +1,5 @@
 import { pagedGet } from '../../../utils/pagedCollection.mjs';
+import { recordedSales } from '../../../utils/coursePayments.mjs';
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
@@ -43,8 +44,8 @@ export default function ScholarTabs() {
       setData({ profile, scholar });
       if (scholar?.approved) {
         const names = ['courses', 'videos', 'earnings', 'stripe'];
-        const paths = ['/scholar-subjects/status', '/videos/scholar/my-videos', '/stripe-connect/earnings', '/stripe-connect/account-status'];
-        const results = await Promise.allSettled(paths.map(path => pagedGet(axios,`${api}${path}`, config)));
+        const paths = ['/scholar-subjects/status', '/videos/scholar/my-videos', '/course-payments/earnings', '/stripe-connect/account-status'];
+        const results = await Promise.allSettled(paths.map(path => path==='/stripe-connect/account-status'&&scholar?.profile?.country_code!=='FI'&&!scholar?.profile?.stripe_account_id?Promise.resolve({data:null}):pagedGet(axios,`${api}${path}`, config)));
         if (!active) return;
         const next = { profile, scholar };
         results.forEach((result, index) => { next[names[index]] = result.status === 'fulfilled' ? result.value.data : null; });
@@ -61,11 +62,12 @@ export default function ScholarTabs() {
   const courses = data.courses?.subjects;
   const videos = data.videos?.videos;
   const summary = data.earnings?.summary;
+  const sales = recordedSales(data.earnings);
   const stats = [
     [BookOpen, 'Total Courses', courses?.length ?? '\u2014'],
-    [ShoppingBag, 'Total Sales', summary?.totalSales ?? '\u2014'],
-    [TrendingUp, "This Month's Sales", summary?.monthlySales ?? '\u2014'],
-    [Wallet, 'Total Earnings', money(summary?.scholarEarnings)]
+    [ShoppingBag, 'Total Sales', sales?.totalSales ?? '\u2014'],
+    [TrendingUp, "This Month's Sales", sales?.monthlySales ?? '\u2014'],
+    [Wallet, 'EUR Earnings', money(summary?.scholarEarnings)]
   ];
   return <main className="scholar-shell">
     <div className="scholar-topline"><span>MY UNICLIPS / SCHOLAR WORLD</span><Link to="/dashboard">Learner Dashboard &rarr;</Link></div>
@@ -77,6 +79,7 @@ export default function ScholarTabs() {
     </section>
     {!data.scholar ? <div className="scholar-section" role="alert">We could not confirm your Scholar status. Refresh to try again.</div> : !approved ? <div className="scholar-section"><h2>Your Scholar application</h2><p>{profile ? 'Your application is awaiting admin approval. Your teaching workspace will become available once approved.' : 'Complete your Scholar application to start teaching.'}</p>{!profile && <Link to="/become-scholar" className="btn btn-primary">Scholar application</Link>}</div> : <>
       <div className="scholar-metrics">{stats.map(([Icon, label, value]) => <div className="scholar-metric" key={label}><Icon size={21} /><span>{label}</span><strong>{value}</strong></div>)}</div>
+      {profile?.country_code==='NG'&&<p className="scholar-note">Nigerian course payments use UniClips Paystack when enabled. You do not need to create a Stripe account for these courses. NGN earnings are held; automatic Scholar payouts are not enabled.</p>}
       {params.get('stripe') && <p className="scholar-note">Stripe setup returned to UniClips. Your current connection status is shown in Earnings & Payouts.</p>}
       <nav className="scholar-tabs" aria-label="Scholar workspace"><Link to="/support">Support</Link><button className={tab === 'courses' ? 'active' : ''} onClick={() => setParams({})}>My Courses</button><button className={tab === 'earnings' ? 'active' : ''} onClick={() => setParams({ tab: 'earnings' })}>Earnings & Payouts</button>{tab === 'earnings' && <Link to="/scholar-dashboard">&larr; Scholar Dashboard</Link>}</nav>
       {actionError && <p role="alert" className="alert alert-danger">{actionError}</p>}

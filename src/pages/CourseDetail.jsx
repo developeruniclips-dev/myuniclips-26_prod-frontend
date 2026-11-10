@@ -1,3 +1,4 @@
+import {paymentPrice,checkoutAllowed,checkoutBody,hostedRedirect,paymentLabel,paystackStatus,checkoutRequestKey} from '../utils/coursePayments.mjs';
 import { pagedGet } from '../utils/pagedCollection.mjs';
 // src/pages/CourseDetail.jsx
 import React, { useState, useEffect, useRef, useCallback } from "react";
@@ -13,38 +14,39 @@ import { authorizedLesson } from '../utils/contentAccess.mjs';
 import { courseCover } from '../utils/courseCovers.mjs';
 
 // Default bundle price (used as fallback)
-const DEFAULT_BUNDLE_PRICE = 6.00;
+// Price and provider are supplied by the authoritative offering response.
 
 // Checkout Component for Subject Bundle - Uses Stripe Checkout Session
-function BundleCheckoutForm({ subjectId, scholarId, subjectName, bundlePrice, onSuccess, onCancel }) {
+function BundleCheckoutForm({ subjectId, scholarId, subjectName, payment, onSuccess, onCancel }) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
 
-  const handleCheckout = async () => {
-    if (!termsAccepted) {
+  const handleCheckout = async (acceptedNow = false) => {
+    if (!checkoutAllowed(payment)) { setError('Checkout is unavailable for this offering.'); return; }
+    if (!termsAccepted && !acceptedNow) {
       setShowTermsModal(true);
       return;
     }
 
     setLoading(true);
     setError("");
-    
+
     try {
       // Create Stripe Checkout Session
       const { data } = await axios.post(
-        `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/purchases/create-checkout-session`,
-        { subjectId, scholarId },
+        `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/course-payments/checkout`,
+        {...checkoutBody(subjectId,scholarId,payment),...(payment.provider==='paystack'?{idempotencyKey:checkoutRequestKey(window.sessionStorage,user.id,subjectId,scholarId)}:{})},
         { headers: { Authorization: `Bearer ${user.token}` } }
       );
 
       // Redirect to Stripe Checkout
-      if (data.url) {
-        window.location.href = data.url;
+      if (hostedRedirect(data.url,payment.provider)) {
+        window.location.href = hostedRedirect(data.url,payment.provider);
       } else {
-        setError("Failed to create checkout session");
+        setError(data.provider==='paystack'?'Checkout is pending or needs review. Do not pay again; check your payment status or contact support.':"Failed to create checkout session");setLoading(false);
       }
     } catch (err) {
       setError(err.response?.data?.message || "Failed to start checkout. Please try again.");
@@ -56,7 +58,7 @@ function BundleCheckoutForm({ subjectId, scholarId, subjectName, bundlePrice, on
     setTermsAccepted(true);
     setShowTermsModal(false);
     // Auto-proceed after accepting terms
-    handleCheckout();
+    handleCheckout(true);
   };
 
   return (
@@ -70,11 +72,11 @@ function BundleCheckoutForm({ subjectId, scholarId, subjectName, bundlePrice, on
           <h4 className="fw-bold mb-2">Unlock Full Course</h4>
           <p className="text-muted mb-0">{subjectName}</p>
         </div>
-        
+
         <div className="bg-light rounded p-3 mb-4">
           <div className="d-flex justify-content-between align-items-center">
             <span>Course Bundle Price</span>
-            <span className="fs-4 fw-bold text-success">€{bundlePrice.toFixed(2)}</span>
+            <span className="fs-4 fw-bold text-success">{paymentPrice(payment)}</span>
           </div>
           <small className="text-muted d-block mt-2">
             <i className="bi bi-check-circle-fill text-success me-1"></i>
@@ -86,17 +88,17 @@ function BundleCheckoutForm({ subjectId, scholarId, subjectName, bundlePrice, on
           </small>
           <small className="text-muted d-block">
             <i className="bi bi-check-circle-fill text-success me-1"></i>
-            Secure payment via Stripe
+            {paymentLabel(payment)}
           </small>
         </div>
 
         {error && <Alert variant="danger" className="py-2">{error}</Alert>}
         <div className="d-grid gap-2">
-          <Button 
-            variant="success" 
-            size="lg" 
-            onClick={handleCheckout}
-            disabled={loading}
+          <Button
+            variant="success"
+            size="lg"
+            onClick={() => handleCheckout()}
+            disabled={loading || !checkoutAllowed(payment)}
           >
             {loading ? (
               <>
@@ -106,15 +108,15 @@ function BundleCheckoutForm({ subjectId, scholarId, subjectName, bundlePrice, on
             ) : (
               <>
                 <i className="bi bi-credit-card me-2"></i>
-                Proceed to Checkout - €{bundlePrice.toFixed(2)}
+                Proceed to {payment.provider==='paystack'?payment.checkoutMode==='test'?'Paystack Test ':'Paystack Live ':''}Checkout - {paymentPrice(payment)}
               </>
             )}
           </Button>
           <Button variant="outline-secondary" onClick={onCancel}>Cancel</Button>
           <small className="text-muted text-center mt-2">
             By proceeding, you agree to our{" "}
-            <span 
-              className="text-primary" 
+            <span
+              className="text-primary"
               style={{ cursor: 'pointer', textDecoration: 'underline' }}
               onClick={() => setShowTermsModal(true)}
             >
@@ -124,13 +126,13 @@ function BundleCheckoutForm({ subjectId, scholarId, subjectName, bundlePrice, on
         </div>
       </Card.Body>
     </Card>
-    
+
     {/* Terms Modal for Purchase */}
     <LearnerTermsModal
       show={showTermsModal}
       onHide={() => setShowTermsModal(false)}
       onAccept={handleTermsAccept}
-      context="purchase"
+      context="purchase" payment={payment}
     />
     </>
   );
@@ -141,7 +143,7 @@ function CourseDetail() {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const navigate = useNavigate();
-  
+
   const [course, setCourse] = useState(null);
   const [videos, setVideos] = useState([]);
   const [scholarInfo, setScholarInfo] = useState(null);
@@ -153,22 +155,35 @@ function CourseDetail() {
   const [loading, setLoading] = useState(true);
   const [inLibrary, setInLibrary] = useState(false);
   const [addingToLibrary, setAddingToLibrary] = useState(false);
-  const [bundlePrice, setBundlePrice] = useState(DEFAULT_BUNDLE_PRICE);
+  const [payment,setPayment]=useState(null);
+  const bundlePrice=payment?.amountMinor==null?null:payment.amountMinor/100;
   const [playingVideo, setPlayingVideo] = useState(null); // Video playing in-page
   const [savedProgress, setSavedProgress] = useState(0);
   const [scholarId, setScholarId] = useState(urlScholarId); // Track actual scholarId
   const [paymentMessage, setPaymentMessage] = useState(null);
+  const paystackRequest=useRef(0);
+  const [verifiedRefresh,setVerifiedRefresh]=useState(0);
   const iframeRef = useRef(null);
   const playerRef = useRef(null);
   const videoPlayerRef = useRef(null); // Reference to video player card for scrolling
   const progressIntervalRef = useRef(null);
   const hasSeekRef = useRef(false); // Track if we've already seeked to saved position
 
+  const reconcilePaystack=useCallback(async()=>{
+    const orderId=searchParams.get('order');if(!user?.token||!orderId||!/^[a-f0-9-]{36}$/.test(orderId))return;
+    const request=++paystackRequest.current;
+    setPaymentMessage({type:'info',text:'Confirming payment with UniClips...'});
+    try{const {data}=await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/course-payments/verify`,{orderId},{headers:{Authorization:`Bearer ${user.token}`},timeout:30000});
+      if(request!==paystackRequest.current)return;const status=paystackStatus(data,subjectId,urlScholarId,orderId);setPaymentMessage(status);if(status.confirmed){setVerifiedRefresh(n=>n+1);}
+    }catch{if(request===paystackRequest.current)setPaymentMessage({type:'warning',text:'Payment status is unavailable. Check again before paying; contact support if it remains unresolved.'});}
+  },[searchParams,user?.token,subjectId,urlScholarId]);
+  useEffect(()=>{if(searchParams.get('payment')==='paystack')reconcilePaystack();return()=>{paystackRequest.current++;};},[searchParams,reconcilePaystack]);
+
   // Handle Stripe Checkout return
   useEffect(() => {
     const payment = searchParams.get('payment');
     const sessionId = searchParams.get('session_id');
-    
+
     if (payment === 'success' && sessionId && user) {
       setPaymentMessage({ type: 'info', text: 'Confirming payment...' });
       // Backend retrieves Stripe evidence and verifies the owned order.
@@ -199,7 +214,7 @@ function CourseDetail() {
 
   useEffect(() => {
     const controller=new AbortController();
-    setLoading(true);setVideos([]);setCourse(null);setHasPurchasedBundle(false);
+    setLoading(true);setVideos([]);setCourse(null);setPayment(null);setHasPurchasedBundle(false);
     const fetchCourseData = async () => {
       try {
         // Fetch all videos
@@ -207,46 +222,49 @@ function CourseDetail() {
           `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/videos/all-videos`,{signal:controller.signal}
         );
         if(controller.signal.aborted)return;
-        
+
         const allVideos = videosRes.data.videos || [];
-        
+
         // Filter videos for this subject and scholar (if scholarId provided)
         let subjectVideos = allVideos.filter(
           v => v.subject_id === parseInt(subjectId) && v.approved === 1
         );
-        
+
         // If scholarId is provided, filter by scholar too
         if (urlScholarId) {
           subjectVideos = subjectVideos.filter(
             v => v.scholar_user_id === parseInt(urlScholarId)
           );
         }
-        
+
         subjectVideos.sort((a, b) => a.sequence_index - b.sequence_index);
-        
+
         if(user && urlScholarId && subjectVideos.length){
           const {data}=await pagedGet(axios,`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/videos/courses/${subjectId}/${urlScholarId}`,{headers:{Authorization:`Bearer ${user.token}`},signal:controller.signal});
           if(controller.signal.aborted)return;
+          setHasPurchasedBundle(data.hasPurchased===true);
           subjectVideos=subjectVideos.map(v=>({...v,...data.videos.find(meta=>Number(meta.id)===Number(v.id))}));
         }
         setVideos(subjectVideos);
 
         if (subjectVideos.length > 0) {
           const firstVideo = subjectVideos[0];
-          
+
           // If no scholarId in URL, redirect to the proper URL with scholarId
           if (!urlScholarId) {
             navigate(`/course/${subjectId}/${firstVideo.scholar_user_id}`, { replace: true });
             return;
           }
-          
+
           // Set the scholarId state
           setScholarId(firstVideo.scholar_user_id);
-          
+
           // Get bundle price from the video data (comes from subjects table)
-          const price = firstVideo.bundle_price ? parseFloat(firstVideo.bundle_price) : DEFAULT_BUNDLE_PRICE;
-          setBundlePrice(price);
-          
+          const {data:offering}=await pagedGet(axios,`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/course-payments/offering`,{params:{subjectId,scholarId:firstVideo.scholar_user_id},...(user?.token?{headers:{Authorization:`Bearer ${user.token}`}}:{}),signal:controller.signal,timeout:15000});
+          if(controller.signal.aborted)return;
+          setPayment(offering.payment);
+          const price=offering.payment?.amountMinor==null?null:offering.payment.amountMinor/100;
+
           setCourse({
             subject_id: firstVideo.subject_id,
             subject_name: firstVideo.subject_name,
@@ -254,7 +272,7 @@ function CourseDetail() {
             description: firstVideo.description,
             bundle_price: price,
           });
-          
+
           setScholarInfo({
             id: firstVideo.scholar_user_id,
             fname: firstVideo.scholar_fname,
@@ -272,36 +290,19 @@ function CourseDetail() {
 
     fetchCourseData();
     return()=>controller.abort();
-  }, [subjectId, urlScholarId, navigate,user?.token]);
+  }, [subjectId, urlScholarId, navigate,user?.token,verifiedRefresh]);
 
   useEffect(() => {
     if (!user || !scholarId) return;
-    
-    // Check if user has purchased this subject bundle
-    const checkBundlePurchase = async () => {
-      try {
-        const res = await pagedGet(axios,
-          `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/purchases/subject/check`,
-          { 
-            params: { subjectId, scholarId },
-            headers: { Authorization: `Bearer ${user.token}` } 
-          }
-        );
-        setHasPurchasedBundle(res.data.hasPurchased);
-      } catch (err) {
-        console.error("Error checking bundle purchase:");
-      }
-    };
-    checkBundlePurchase();
 
     // Check if course is in library
     const checkLibrary = async () => {
       try {
         const res = await pagedGet(axios,
           `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/library/check`,
-          { 
-            params: { subjectId, scholarId },
-            headers: { Authorization: `Bearer ${user.token}` } 
+          {
+            params: {subjectId,scholarId},
+            headers: { Authorization: `Bearer ${user.token}` }
           }
         );
         setInLibrary(res.data.inLibrary);
@@ -318,14 +319,14 @@ function CourseDetail() {
       setSavedProgress(0);
       return;
     }
-    
+
     const loadProgress = async () => {
       try {
         const res = await pagedGet(axios,
           `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/library/video-progress`,
-          { 
+          {
             params: { videoId: playingVideo.id },
-            headers: { Authorization: `Bearer ${user.token}` } 
+            headers: { Authorization: `Bearer ${user.token}` }
           }
         );
         if (res.data.progressSeconds > 0) {
@@ -338,7 +339,7 @@ function CourseDetail() {
         setSavedProgress(0);
       }
     };
-    
+
     loadProgress();
   }, [user, playingVideo]);
 
@@ -547,31 +548,32 @@ function CourseDetail() {
   return (
     <div style={{ background: '#f8fafc', minHeight: '100vh' }}>
       {/* Dynamic SEO for this course */}
-      <CourseDetailSEO 
+      <CourseDetailSEO
         course={{
           id: subjectId,
           title: course?.subject_name,
           description: course?.description,
           subject: course?.degree_programme,
           price: bundlePrice
-        }} 
+        }}
       />
-      
+
       {/* Payment Status Message */}
       {paymentMessage && (
-        <Alert 
-          variant={paymentMessage.type} 
+        <Alert
+          variant={paymentMessage.type}
           className="mb-0 text-center rounded-0"
           dismissible
           onClose={() => setPaymentMessage(null)}
         >
           {paymentMessage.text}
+          {searchParams.get('payment')==='paystack'&&!paymentMessage.confirmed&&<Button variant="link" onClick={reconcilePaystack}>Check payment status</Button>}
         </Alert>
       )}
-      
+
       {/* Course Hero Section */}
-      <div 
-        style={{ 
+      <div
+        style={{
           background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
           padding: '60px 0',
           color: 'white'
@@ -587,10 +589,10 @@ function CourseDetail() {
               <p className="fs-5 opacity-90 mb-4">
                 {course.description || 'Learn from expert scholars with comprehensive video lessons.'}
               </p>
-              
+
               {/* Scholar Info */}
               <div className="d-flex align-items-center mb-4">
-                <div 
+                <div
                   className="rounded-circle bg-white text-primary d-flex align-items-center justify-content-center me-3"
                   style={{ width: '60px', height: '60px', fontSize: '1.5rem', fontWeight: 'bold' }}
                 >
@@ -616,29 +618,29 @@ function CourseDetail() {
                   <strong>1st Video</strong> Free
                 </div>
                 <div>
-                  <i className="bi bi-currency-euro me-2"></i>
-                  <strong>€{bundlePrice.toFixed(2)}</strong> Full Course
+                  <i className="bi bi-wallet2 me-2" aria-hidden="true"></i>
+                  <strong>{paymentPrice(payment)}</strong> Full Course
                 </div>
               </div>
             </Col>
-            
+
             <Col lg={4} className="mt-4 mt-lg-0">
               {/* Preview Card */}
               <Card className="border-0 shadow-lg">
-                <div 
+                <div
                   className="position-relative"
-                  style={{ 
-                    height: '180px', 
+                  style={{
+                    height: '180px',
                     borderRadius: '8px 8px 0 0',
                     overflow: 'hidden'
                   }}
                 >
-                  <img 
+                  <img
                     src={courseCover(subjectId, scholarId, videos[0]?.id)}
                     alt={videos[0]?.title || 'Course Preview'}
-                    style={{ 
-                      width: '100%', 
-                      height: '100%', 
+                    style={{
+                      width: '100%',
+                      height: '100%',
                       objectFit: 'cover'
                     }}
                     onError={(e) => {
@@ -647,7 +649,7 @@ function CourseDetail() {
                       e.target.parentElement.style.background = 'linear-gradient(135deg, #1e293b 0%, #334155 100%)';
                     }}
                   />
-                  <div 
+                  <div
                     className="position-absolute w-100 h-100 d-flex align-items-center justify-content-center"
                     style={{ top: 0, left: 0, background: 'rgba(0,0,0,0.3)' }}
                   >
@@ -667,9 +669,9 @@ function CourseDetail() {
                           Course Purchased
                         </Badge>
                       </div>
-                      <Button 
-                        variant="primary" 
-                        size="lg" 
+                      <Button
+                        variant="primary"
+                        size="lg"
                         className="w-100 mb-2"
                         onClick={() => handleVideoClick(videos[0], 0)}
                       >
@@ -679,9 +681,9 @@ function CourseDetail() {
                     </>
                   ) : (
                     <>
-                      <Button 
-                        variant="outline-primary" 
-                        size="lg" 
+                      <Button
+                        variant="outline-primary"
+                        size="lg"
                         className="w-100 mb-2"
                         onClick={() => handleVideoClick(videos[0], 0)}
                       >
@@ -689,19 +691,19 @@ function CourseDetail() {
                         Watch Free Preview
                       </Button>
                       {user ? (
-                        <Button 
-                          variant="success" 
-                          size="lg" 
+                        <Button
+                          variant="success"
+                          size="lg"
                           className="w-100 mb-2"
-                          onClick={() => setShowCheckout(true)}
+                          disabled={!checkoutAllowed(payment)} onClick={() => setShowCheckout(true)}
                         >
                           <i className="bi bi-unlock-fill me-2"></i>
-                          Unlock Full Course - €{bundlePrice.toFixed(2)}
+                          {checkoutAllowed(payment)?`Unlock Full Course - ${paymentPrice(payment)}${payment.provider==='paystack'?payment.checkoutMode==='test'?' · Paystack test':' · Paystack Live':''}`:paymentLabel(payment)}
                         </Button>
                       ) : (
-                        <Button 
-                          variant="success" 
-                          size="lg" 
+                        <Button
+                          variant="success"
+                          size="lg"
                           className="w-100 mb-2"
                           onClick={() => navigate('/login')}
                         >
@@ -711,12 +713,12 @@ function CourseDetail() {
                       )}
                     </>
                   )}
-                  
+
                   {/* Add to Library Button */}
                   {user ? (
                     inLibrary ? (
-                      <Button 
-                        variant="outline-success" 
+                      <Button
+                        variant="outline-success"
                         className="w-100 mb-3"
                         onClick={handleRemoveFromLibrary}
                         disabled={addingToLibrary}
@@ -725,8 +727,8 @@ function CourseDetail() {
                         {addingToLibrary ? 'Updating...' : 'In Your Library'}
                       </Button>
                     ) : (
-                      <Button 
-                        variant="outline-primary" 
+                      <Button
+                        variant="outline-primary"
                         className="w-100 mb-3"
                         onClick={handleAddToLibrary}
                         disabled={addingToLibrary}
@@ -736,8 +738,8 @@ function CourseDetail() {
                       </Button>
                     )
                   ) : (
-                    <Button 
-                      variant="outline-primary" 
+                    <Button
+                      variant="outline-primary"
                       className="w-100 mb-3"
                       onClick={() => navigate('/login')}
                     >
@@ -745,10 +747,10 @@ function CourseDetail() {
                       Login to Add to Library
                     </Button>
                   )}
-                  
+
                   <p className="text-muted text-center mb-0 small">
                     <i className="bi bi-shield-check me-1"></i>
-                    First video free • €{bundlePrice.toFixed(2)} for full access
+                    First video free • {paymentPrice(payment)} for full access
                   </p>
                 </Card.Body>
               </Card>
@@ -776,9 +778,9 @@ function CourseDetail() {
                       </Badge>
                     )}
                   </div>
-                  <Button 
-                    variant="link" 
-                    className="text-white p-0" 
+                  <Button
+                    variant="link"
+                    className="text-white p-0"
                     onClick={() => setPlayingVideo(null)}
                   >
                     <i className="bi bi-x-lg"></i>
@@ -817,15 +819,15 @@ function CourseDetail() {
                   const canWatch = canWatchVideo(video, index);
                   const isFirstVideo = Number(video.is_first_preview)===1;
                   const isPlaying = playingVideo && playingVideo.id === video.id;
-                  
+
                   return (
-                    <ListGroup.Item 
+                    <ListGroup.Item
                       key={video.id}
                       className={`d-flex align-items-center py-3 px-4 ${isPlaying ? 'bg-primary bg-opacity-10 border-primary' : ''}`}
                       style={{ cursor: 'pointer' }}
                       onClick={() => handleVideoClick(video, index)}
                     >
-                      <div 
+                      <div
                         className={`rounded-circle d-flex align-items-center justify-content-center me-3 ${isPlaying ? 'bg-success' : canWatch ? 'bg-primary' : 'bg-secondary'}`}
                         style={{ width: '40px', height: '40px', minWidth: '40px' }}
                       >
@@ -837,7 +839,7 @@ function CourseDetail() {
                           <i className="bi bi-lock-fill text-white"></i>
                         )}
                       </div>
-                      
+
                       <div className="flex-grow-1">
                         <h6 className="mb-1">
                           {index + 1}. {video.title}
@@ -855,9 +857,9 @@ function CourseDetail() {
                           )}
                         </small>
                       </div>
-                      
-                      <Button 
-                        variant={isPlaying ? 'success' : canWatch ? 'primary' : 'outline-primary'} 
+
+                      <Button
+                        variant={isPlaying ? 'success' : canWatch ? 'primary' : 'outline-primary'}
                         size="sm"
                       >
                         {isPlaying ? (
@@ -883,11 +885,11 @@ function CourseDetail() {
             {/* Scholar Card */}
             <Card className="border-0 shadow-sm mb-4">
               <Card.Body className="text-center p-4">
-                <div 
+                <div
                   className="rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center"
-                  style={{ 
-                    width: '100px', 
-                    height: '100px', 
+                  style={{
+                    width: '100px',
+                    height: '100px',
                     background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
                     fontSize: '2.5rem',
                     color: 'white',
@@ -898,7 +900,7 @@ function CourseDetail() {
                 </div>
                 <h5 className="mb-1">{scholarInfo?.fname} {scholarInfo?.lname}</h5>
                 <p className="text-muted mb-3">Expert Scholar</p>
-                
+
                 <div className="text-start bg-light rounded p-3">
                   <div className="mb-2">
                     <small className="text-muted">
@@ -959,17 +961,17 @@ function CourseDetail() {
 
       {/* Checkout Modal for Bundle */}
       {showCheckout && (
-        <div 
+        <div
           className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
           style={{ background: 'rgba(0,0,0,0.5)', zIndex: 1050 }}
           onClick={() => setShowCheckout(false)}
         >
           <div onClick={e => e.stopPropagation()} style={{ maxWidth: '450px', width: '90%' }}>
-            <BundleCheckoutForm 
+            <BundleCheckoutForm
               subjectId={parseInt(subjectId)}
               scholarId={parseInt(scholarId)}
               subjectName={course?.subject_name}
-              bundlePrice={bundlePrice}
+              payment={payment}
               onSuccess={handlePurchaseSuccess}
               onCancel={() => setShowCheckout(false)}
             />

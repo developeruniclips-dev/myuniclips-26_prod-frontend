@@ -1,3 +1,4 @@
+import PurchaseHistory from './components/PurchaseHistory';
 import { pagedGet } from '../../utils/pagedCollection.mjs';
 import React, { useEffect, useState } from 'react';
 import { Container, Alert, Tabs, Tab } from 'react-bootstrap';
@@ -156,6 +157,7 @@ export default function Dashboard() {
         <EmptyLearning title="More learning is on the way">Check back for courses as scholars publish them.</EmptyLearning>
       </CourseSection>
       {scholarAccess ? <aside className="learning-scholar"><div><h2>Keep sharing what you know</h2><p>Your teaching tools are one click away.</p></div><Link className="btn btn-primary" to="/scholar-dashboard">Scholar Dashboard →</Link></aside> : data.scholar && !data.scholar.approved && <aside className="learning-scholar"><div><h2>{isApplicant ? 'Your Scholar journey has started' : 'Know a course really well? 🎓'}</h2><p>{isApplicant ? 'Your application is awaiting approval. Keep learning while the team reviews it.' : 'Help other students understand it and earn from your knowledge.'}</p></div>{!isApplicant && <Link className="btn btn-primary" to="/become-scholar">Become a Scholar →</Link>}</aside>}
+      <PurchaseHistory token={user.token} />
     </Container>
   </main>;
 }

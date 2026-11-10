@@ -1,0 +1,8 @@
+import {useEffect,useState} from 'react';
+import axios from 'axios';
+import {financialMoney} from '../../../utils/coursePayments.mjs';
+export default function PurchaseHistory({token}){
+ const [state,setState]=useState({loading:true});
+ useEffect(()=>{const controller=new AbortController();setState({loading:true});axios.get(`${import.meta.env.VITE_API_URL||'http://localhost:3001/api'}/course-payments/history`,{headers:{Authorization:`Bearer ${token}`},signal:controller.signal}).then(({data})=>{if(!controller.signal.aborted)setState({rows:data.purchases});}).catch(()=>{if(!controller.signal.aborted)setState({error:true});});return()=>controller.abort();},[token]);
+ return <section className="learning-section" aria-label="Purchase history and receipts"><h2>Purchase history and receipts</h2>{state.loading?<p role="status">Loading purchases…</p>:state.error||!Array.isArray(state.rows)?<p role="status">Purchase history is unavailable.</p>:!state.rows.length?<p>No recorded course purchases.</p>:<div className="table-responsive"><table className="table"><thead><tr><th>Course</th><th>Paid amount</th><th>Provider / entity</th><th>Verification</th><th>Reference</th></tr></thead><tbody>{state.rows.map(p=><tr key={`purchase-${p.purchase_id}`}><td>{p.course_name}<small className="d-block">{p.access_expires_at?`Access until ${new Date(p.access_expires_at).toLocaleDateString()}`:'Access date unavailable'}</small></td><td>{financialMoney(p.amount,p.currency)}</td><td>{p.provider} / {p.entity||'Unreconciled'}</td><td>{p.verificationState}</td><td>{p.verificationState==='verified'?p.payment_reference:'Awaiting reconciliation'}</td></tr>)}</tbody></table></div>}</section>;
+}
