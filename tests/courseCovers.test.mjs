@@ -33,3 +33,14 @@ test('cover lookup contains no provider address, provider video identifier or pl
  for(const providerId of ['1157149380','1157157494','1161848258','1175902055','1176003279','1188848807','1197529693'])
   assert.equal(source.includes(providerId),false);
 });
+
+test('new and future course covers use the public image endpoint with only UniClips course identifiers',()=>{
+ const api='https://api.example.invalid/api';
+ assert.equal(courseCover(3841,50,88,api),api+'/videos/covers/3841/50');
+ assert.equal(courseCover(9999,51,200,api+'/'),api+'/videos/covers/9999/51');
+ assert.equal(courseCover(3841,50,undefined,api),api+'/videos/covers/3841/50');
+ assert.equal(courseCover(1478,18,23,api),courseCover(1478,18,23));
+ assert.equal(courseCover(1478,18,24,api),'/course-fallback.svg');
+ for(const base of ['javascript:alert(1)','http://untrusted.invalid/api','https://user:password@example.invalid/api','https://example.invalid/api?secret=1','https://example.invalid/api#token'])assert.equal(courseCover(3841,50,88,base),'/course-fallback.svg');
+ for(const ids of [[0,50],['3841/../../admin',50],[3841,'50?x=1'],[2147483648,50],['03841',50]])assert.equal(courseCover(...ids,undefined,api),'/course-fallback.svg');
+});

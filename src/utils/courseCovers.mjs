@@ -30,9 +30,16 @@ const covers = {
   }
 };
 
-export function courseCover(subjectId, scholarId, firstLessonId) {
-  if (![subjectId, scholarId].every(id => /^(?:[1-9][0-9]*)$/.test(String(id)))) return '/course-fallback.svg';
+export function courseCover(subjectId, scholarId, firstLessonId, api = import.meta.env ? import.meta.env.VITE_API_URL || 'http://localhost:3001/api' : undefined) {
+  if (![subjectId, scholarId].every(id => /^(?:[1-9][0-9]{0,9})$/.test(String(id)) && Number(id) <= 2147483647)) return '/course-fallback.svg';
   const cover = covers[String(subjectId) + '-' + String(scholarId)];
-  if (!cover || (firstLessonId !== undefined && String(firstLessonId) !== String(cover.firstLessonId))) return '/course-fallback.svg';
-  return cover.image;
+  if (cover) return firstLessonId !== undefined && String(firstLessonId) !== String(cover.firstLessonId) ? '/course-fallback.svg' : cover.image;
+  // The API authorizes the currently published first lesson on every image read.
+  // Existing bundled covers retain their exact original paths and bytes.
+  try {
+    if (typeof api !== 'string') return '/course-fallback.svg';
+    const url = new URL(api);
+    if ((url.protocol !== 'https:' && !(url.protocol === 'http:' && url.hostname === 'localhost')) || url.username || url.password || url.search || url.hash || !/^\/[A-Za-z0-9/_-]*$/.test(url.pathname)) return '/course-fallback.svg';
+    return url.href.replace(/\/$/, '') + '/videos/covers/' + subjectId + '/' + scholarId;
+  } catch { return '/course-fallback.svg'; }
 }
