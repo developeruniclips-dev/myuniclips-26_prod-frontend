@@ -50,12 +50,23 @@ async function request(url,method='GET',body){
  }
  if(p.endsWith('/request-changes')&&method==='POST'){detail.workflow.state='CHANGES_REQUESTED';detail.workflow.feedback=body.reason;queue=[];return {state:'CHANGES_REQUESTED'};}
  if(p.endsWith('/publish')&&method==='POST'){assert.equal(body.confirmation,'PUBLISH COURSE 18');assert.equal(body.count,detail.videos.length);queue=[];return {state:'PUBLISHED'};}
+ if(p.endsWith('/visibility')&&method==='POST'){if(denied)throw Object.assign(Error('Course visibility changed; reload before acting'),{status:409});assert.deepEqual(Object.keys(body).sort(),['hidden','revision']);queue[0].public_hidden=body.hidden?1:0;queue[0].visibility_revision=body.revision+1;return {success:true,hidden:body.hidden,revision:body.revision+1};}
  throw Error('Unexpected synthetic request '+method+' '+p);
 }
 axios.defaults.adapter=async c=>({data:await request(c.url,c.method.toUpperCase(),typeof c.data==='string'?JSON.parse(c.data):c.data),status:200,statusText:'OK',headers:{},config:c});
 // Fetch must execute request before json so HTTP failures are represented correctly.
 globalThis.fetch=async(url,o={})=>{try{const data=await request(url,o.method||'GET',o.body?JSON.parse(o.body):undefined);return {ok:true,json:async()=>data};}catch(e){return {ok:false,status:e.status||409,json:async()=>({message:e.message})};}};
 afterEach(()=>cleanup());
+test('SuperAdmin can explicitly hide and unhide an uploaded course without changing its workflow',async()=>{
+ reset();render(h(CourseReviews,{owner:true}));fireEvent.change(await screen.findByLabelText('Course status'),{target:{value:'ALL'}});
+ fireEvent.click(await screen.findByRole('button',{name:'Hide course'}));let dialog=await screen.findByRole('dialog',{name:'Hide course'});
+ assert.match(dialog.textContent,/Existing buyers retain their access/);fireEvent.click(within(dialog).getByRole('button',{name:'Hide course'}));
+ await screen.findByRole('button',{name:'Unhide course'});assert.equal(queue[0].state,'SUBMITTED_FOR_REVIEW');assert.deepEqual(calls.find(c=>c.p.endsWith('/visibility')).body,{hidden:true,revision:0});
+ fireEvent.click(screen.getByRole('button',{name:'Unhide course'}));dialog=await screen.findByRole('dialog',{name:'Unhide course'});fireEvent.click(within(dialog).getByRole('button',{name:'Unhide course'}));
+ await screen.findByRole('button',{name:'Hide course'});assert.equal(queue[0].public_hidden,0);assert.equal(queue[0].visibility_revision,2);
+});
+test('ordinary Admin can inspect but has no hide or unhide action',async()=>{reset();render(h(CourseReviews,{owner:false}));await screen.findByRole('button',{name:'Inspect course'});assert.equal(screen.queryByRole('button',{name:'Hide course'}),null);assert.equal(screen.queryByRole('button',{name:'Unhide course'}),null);});
+test('stale visibility remains an explicit error and is not retried',async()=>{reset();render(h(CourseReviews,{owner:true}));fireEvent.click(await screen.findByRole('button',{name:'Hide course'}));const dialog=await screen.findByRole('dialog',{name:'Hide course'});denied=true;fireEvent.click(within(dialog).getByRole('button',{name:'Hide course'}));await screen.findByRole('alert');assert.equal(calls.filter(c=>c.p.endsWith('/visibility')).length,1);assert.equal(queue[0].public_hidden,undefined);});
 function manage(){return render(h(MemoryRouter,{initialEntries:['/manage-course/10']},h(Routes,null,h(Route,{path:'/manage-course/:subjectId',element:h(ManageCourse)}))));}
 async function openSubmit(label='Submit Course for Review'){
  const trigger=await screen.findByRole('button',{name:label});trigger.focus();fireEvent.click(trigger);

@@ -12,7 +12,7 @@ function CourseDetail({offeringId,course,owner,onSaved,onClose}){
  return <><Modal show={action!=='publish'} onHide={busy?()=>{}:onClose} centered scrollable size="lg" backdrop={busy?'static':true} keyboard={!busy} aria-labelledby="course-review-title">
  <Modal.Header closeButton={!busy}><Modal.Title id="course-review-title">{name}</Modal.Title></Modal.Header>
  <Modal.Body><p>Offering #{offeringId}</p><Notice {...resource}>
- {current&&<><p>Status: <Badge>{workflowLabel(state)}</Badge> | {current.videos.length} uploaded lessons</p>{feedback&&<p className="ops-prose">Feedback: {feedback}</p>}
+ {current&&<><p>Status: <Badge>{workflowLabel(state)}</Badge> | {current.videos.length} uploaded lessons</p><p>Public visibility: <Badge>{current.publicHidden?'Hidden from public':'Visible when published'}</Badge></p>{feedback&&<p className="ops-prose">Feedback: {feedback}</p>}
  <ol>{current.videos.map(v=><li key={v.id}><strong>Lesson {v.sequence_index}: {v.title}</strong><p>{v.description}</p><button onClick={()=>setSelected(selected===v.id?null:v.id)}>{selected===v.id?'Close preview':'Preview lesson'}</button>{selected===v.id&&<ReviewPlayer videoId={v.id} title={v.title}/>}</li>)}</ol>
  {state==='SUBMITTED_FOR_REVIEW'&&<div className="ops-actions"><button onClick={()=>setAction('publish')}>Publish complete course</button><button onClick={()=>setAction('request-changes')}>Request Changes</button>{owner&&<button onClick={()=>setAction('reopen')}>Reopen for Changes</button>}</div>}
  {['request-changes','reopen'].includes(action)&&<form onSubmit={requestChanges}><label>Feedback for the Scholar<textarea required minLength={8} maxLength={2000} value={reason} onChange={e=>setReason(e.target.value)}/></label>{error&&<p role="alert">{error}</p>}<button disabled={busy}>Return for Changes</button><button type="button" disabled={busy} onClick={()=>setAction(null)}>Cancel feedback</button></form>}</>}
@@ -20,6 +20,7 @@ function CourseDetail({offeringId,course,owner,onSaved,onClose}){
  {action==='publish'&&<ConfirmAction title="Publish complete course" phrase={'PUBLISH COURSE '+offeringId} explanation={'Confirm you reviewed all '+current.videos.length+' lessons, their content and order. This publishes the complete course. Prices and payment records stay unchanged.'} onClose={()=>setAction(null)} onConfirm={async confirmation=>{await api('/operations/course-workflows/'+offeringId+'/publish','POST',{confirmation,count:current.videos.length});setAction(null);onSaved();}}/>}</>;
 }
 export default function CourseReviews({owner,offeringId}){
+ const api=useApi(),[visibility,setVisibility]=useState(null);
  const [state,setState]=useState('SUBMITTED_FOR_REVIEW'),[selected,setSelected]=useState(offeringId||null),[page,setPage]=useState(1),resource=useResource('/operations/course-workflows?state='+state+'&page='+page);
  useEffect(()=>setSelected(offeringId||null),[offeringId]);
  const rows=resource.data?.rows||[];
@@ -27,7 +28,13 @@ export default function CourseReviews({owner,offeringId}){
  <label>Course status<select value={state} onChange={e=>{setState(e.target.value);setPage(1);setSelected(null);}}><option value="ALL">All courses</option>{['SUBMITTED_FOR_REVIEW','DRAFT','CHANGES_REQUESTED','PUBLISHED'].map(s=><option key={s} value={s}>{workflowLabel(s)}</option>)}</select></label>
  <Notice {...resource}><Table rows={rows} columns={[
  ['Course',r=><>{r.course}<small>{r.fname} {r.lname} | {r.lesson_count} lessons | Offering #{r.id}</small></>],
- ['Status',r=><Badge>{workflowLabel(r.state)}</Badge>],['Review',r=><button aria-haspopup="dialog" onClick={()=>setSelected(r.id)}>Inspect course</button>]
+ ['Status',r=><Badge>{workflowLabel(r.state)}</Badge>],['Public visibility',r=><Badge>{Number(r.public_hidden)===1?'Hidden from public':'Visible when published'}</Badge>],['Review',r=><button aria-haspopup="dialog" onClick={()=>setSelected(r.id)}>Inspect course</button>],
+ ...(owner?[['Visibility action',r=><button aria-haspopup="dialog" onClick={()=>setVisibility(r)}>{Number(r.public_hidden)===1?'Unhide course':'Hide course'}</button>]]:[])
  ]}/><Pager data={resource.data} setPage={n=>{setPage(n);setSelected(null);}}/></Notice>
- {selected&&<CourseDetail key={selected} offeringId={selected} course={rows.find(r=>Number(r.id)===Number(selected))} owner={owner} onClose={()=>setSelected(null)} onSaved={()=>{setSelected(null);resource.reload();}}/>}</>;
+ {selected&&<CourseDetail key={selected} offeringId={selected} course={rows.find(r=>Number(r.id)===Number(selected))} owner={owner} onClose={()=>setSelected(null)} onSaved={()=>{setSelected(null);resource.reload();}}/>}
+ {owner&&visibility&&<VisibilityDialog key={visibility.id} course={visibility} api={api} onClose={()=>setVisibility(null)} onSaved={()=>{setVisibility(null);resource.reload();}}/>}</>;
+}
+function VisibilityDialog({course,api,onClose,onSaved}){
+ const [busy,setBusy]=useState(false),[error,setError]=useState('');const hidden=Number(course.public_hidden)===1;
+ return <Modal show onHide={busy?()=>{}:onClose} centered backdrop={busy?'static':true} keyboard={!busy} aria-labelledby="course-visibility-title"><Modal.Header closeButton={!busy}><Modal.Title id="course-visibility-title">{hidden?'Unhide course':'Hide course'}</Modal.Title></Modal.Header><Modal.Body><p><strong>{course.course}</strong> — Offering #{course.id}</p><p>{hidden?'Restore public visibility. The course will appear publicly only if it is already published and approved.':'Hide this whole course from public listings and new learners until a SuperAdmin unhides it.'}</p><p>Existing buyers retain their access. Uploaded lessons, reviews, purchases and earnings stay unchanged.</p>{error&&<p role="alert" className="ops-error">{error}</p>}</Modal.Body><Modal.Footer><button disabled={busy} onClick={onClose}>Cancel</button><button className="btn btn-primary" disabled={busy} onClick={async()=>{if(busy)return;setBusy(true);setError('');try{await api('/operations/course-workflows/'+course.id+'/visibility','POST',{hidden:!hidden,revision:Number(course.visibility_revision||0)});onSaved();}catch(e){setError(e.message);setBusy(false);}}}>{busy?'Saving…':hidden?'Unhide course':'Hide course'}</button></Modal.Footer></Modal>;
 }

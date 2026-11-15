@@ -8,7 +8,7 @@ export function buildCatalog(videos) {
   videos.filter(video => Number(video.approved) === 1).forEach(video => {
     const key = courseKey(video.subject_id, video.scholar_user_id);
     if (!courses.has(key)) courses.set(key, {
-      key, subjectId: video.subject_id, scholarId: video.scholar_user_id, payment:video.payment,
+      key, subjectId: video.subject_id, scholarId: video.scholar_user_id, payment:video.payment,publicHidden:video.public_hidden===true,
       title: video.subject_name, programme: video.degree_programme,
       ...classificationFields(video),
       universityId: video.university_id, university: video.scholar_university || video.university_label,
@@ -87,12 +87,12 @@ export function recommendCourses(catalog, purchased, profile) {
     const programme = matchesProgramme(course, profile?.degree_programme, profile?.university_id);
     return university && programme ? 3 : university ? 2 : programme ? 1 : 0;
   };
-  return catalog.filter(course => !owned.has(course.key)).sort((a, b) => score(b) - score(a) || b.createdAt - a.createdAt).slice(0, 4);
+  return catalog.filter(course => !course.publicHidden&&!owned.has(course.key)).sort((a, b) => score(b) - score(a) || b.createdAt - a.createdAt).slice(0, 4);
 }
 
 export function selectNewCourses(catalog, recommended) {
   const recommendedKeys = new Set(recommended.map(course => course.key));
-  const dated = catalog.filter(course => course.createdAt).sort((a, b) => b.createdAt - a.createdAt);
+  const dated = catalog.filter(course => !course.publicHidden&&course.createdAt).sort((a, b) => b.createdAt - a.createdAt);
   const different = dated.filter(course => !recommendedKeys.has(course.key));
   // Prefer four different courses; allow at most one shared course. If the
   // catalogue is small, show fewer cards instead of repeating the same row.

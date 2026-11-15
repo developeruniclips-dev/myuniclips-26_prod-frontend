@@ -13,7 +13,7 @@ import { classificationFields, matchesProgramme, matchesCourseSearch } from '../
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 const requests = {
-  profile: '/users/profile', catalog: '/videos/all-videos',
+  profile: '/users/profile', catalog: '/videos/learning-catalogue',
   bundles: '/purchases/subject/my-purchases', legacy: '/purchases/my-purchases',
   saved: '/library/my-library', progress: '/library/learning-progress',
   universities: '/locations/universities', scholar: '/scholar-profile/status'
