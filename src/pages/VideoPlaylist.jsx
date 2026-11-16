@@ -1,4 +1,3 @@
-import {paymentLabel} from '../utils/coursePayments.mjs';
 import { pagedGet } from '../utils/pagedCollection.mjs';
 import React, { useState, useEffect } from "react";
 import { Container, Row, Col, Card, Button, Modal, Badge, Form, InputGroup } from "react-bootstrap";
@@ -328,7 +327,6 @@ function VideoPlaylist() {
                     <small className="text-muted">Scholar</small>
                   </div>
                 </div>
-                <p>{paymentLabel(course.payment)}</p>
                 <Button variant="outline-primary" className="mt-3" onClick={() => handleCourseClick(course)} aria-label={`Start learning ${course.subjectName}`}>Start Learning</Button>
               </Card.Body>
             </Card>
