@@ -1,4 +1,4 @@
-import test,{afterEach} from 'node:test';
+import test,{afterEach,beforeEach} from 'node:test';
 import assert from 'node:assert/strict';
 import {JSDOM} from 'jsdom';
 import {build} from 'esbuild';
@@ -13,8 +13,9 @@ const axios=createRequire(import.meta.url)('axios'),h=React.createElement,artifa
 globalThis.PAYMENT_FIXTURE_USER={id:11,token:'synthetic-offline-session'};
 await build({stdin:{contents:"export {default as CourseDetail} from './src/pages/CourseDetail.jsx';export {default as ScholarEarnings} from './src/pages/dashboard/components/ScholarEarnings.jsx';export {default as PurchaseHistory} from './src/pages/dashboard/components/PurchaseHistory.jsx';export {Finance} from './src/pages/operations/FinanceSystem.jsx';",resolveDir:process.cwd(),loader:'jsx'},outfile:artifact,bundle:true,platform:'node',format:'cjs',packages:'external',jsx:'automatic',define:{'import.meta.env.VITE_API_URL':JSON.stringify('http://localhost:3001/api')},loader:{'.css':'empty','.png':'dataurl','.jpg':'dataurl'},plugins:[{name:'inert-auth-and-seo',setup(b){b.onResolve({filter:/context\/temp$/},()=>({path:'auth',namespace:'fixture'}));b.onResolve({filter:/components\/SEO$/},()=>({path:'seo',namespace:'fixture'}));b.onLoad({filter:/.*/,namespace:'fixture'},a=>({loader:'jsx',resolveDir:process.cwd(),contents:a.path==='auth'?"export function useAuth(){return {user:globalThis.PAYMENT_FIXTURE_USER};}":"export function CourseDetailSEO(){return null;}"}));}}]});
 const {CourseDetail,ScholarEarnings,PurchaseHistory,Finance}=createRequire(import.meta.url)(artifact);
-const originalGet=axios.get,originalPost=axios.post,originalFetch=globalThis.fetch;
-afterEach(()=>{cleanup();axios.get=originalGet;axios.post=originalPost;globalThis.fetch=originalFetch;});
+const originalGet=axios.get,originalPost=axios.post,originalRequest=axios.request,originalFetch=globalThis.fetch;
+beforeEach(()=>{axios.request=async config=>{assert.equal(new URL(config.url).pathname,'/api/scholar-payout-details/status');return {data:{enabled:false}};};});
+afterEach(()=>{cleanup();axios.get=originalGet;axios.post=originalPost;axios.request=originalRequest;globalThis.fetch=originalFetch;});
 function courseFixture(payment){const video={id:1,subject_id:123,scholar_user_id:7,approved:1,sequence_index:1,is_free:1,is_first_preview:1,title:'Preview',subject_name:'Synthetic Course',scholar_fname:'Synthetic',scholar_lname:'Scholar',payment};let posts=0;
  axios.get=async(url)=>{const p=new URL(url).pathname;if(p.endsWith('/videos/all-videos')||p.endsWith('/videos/courses/123/7'))return {data:{videos:[video]}};if(p.endsWith('/course-payments/offering'))return {data:{payment}};if(p.endsWith('/purchases/subject/check'))return {data:{hasPurchased:false,hasEverPurchased:false}};if(p.endsWith('/library/check'))return {data:{inLibrary:false}};throw Error('Unexpected offline GET '+p);};axios.post=async()=>{posts++;throw Error('No provider initiation allowed');};
  render(h(MemoryRouter,{initialEntries:['/course/123/7']},h(Routes,null,h(Route,{path:'/course/:subjectId/:scholarId',element:h(CourseDetail)}))));return()=>posts;
@@ -94,7 +95,7 @@ test('existing Stripe account management survives an academic country change wit
 
 test('Nigerian Scholar onboarding explains held allocations without requiring a merchant account',()=>{
  render(h(ScholarEarnings,{countryCode:'NG',token:'synthetic',stripe:null,data:{summary:{currency:'EUR',totalSales:0},breakdowns:[],salesByCourse:[],payoutHistory:[]}}));
- assert.match(document.body.textContent,/do not need a Stripe or Paystack merchant account/);assert.match(document.body.textContent,/automatic payouts and bank onboarding are not enabled/);assert.equal(screen.queryByRole('button',{name:/Connect.*Stripe/}),null);
+ assert.match(document.body.textContent,/do not need a Stripe or Paystack merchant account/);assert.match(document.body.textContent,/automatic payouts are not enabled/);assert.match(document.body.textContent,/Optional until payout/);assert.equal(screen.queryByRole('button',{name:/Connect.*Stripe/}),null);
 });
 
 test('Finnish Scholar retains Stripe connection onboarding without Nigerian hold messaging',()=>{
