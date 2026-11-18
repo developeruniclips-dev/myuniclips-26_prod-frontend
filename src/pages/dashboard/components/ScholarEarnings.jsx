@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { formatMoney } from '../../../utils/paymentStatus.mjs';
+import NigeriaPayoutDetails from '../../../components/payouts/NigeriaPayoutDetails';
 export const money = (value, currency = 'EUR') => value == null ? '?' : formatMoney(value, currency);
 export default function ScholarEarnings({ data, stripe, token, countryCode, hasVideos }) {
   const [busy, setBusy] = useState(false);
@@ -15,7 +16,8 @@ export default function ScholarEarnings({ data, stripe, token, countryCode, hasV
   const summary = data?.summary;
   return <section className="scholar-section" aria-labelledby="scholar-earnings-title">
     <div className="scholar-section-heading"><div><h2 id="scholar-earnings-title">Earnings & Payouts</h2><p>70% for the first 100 sales per course, 50% thereafter.</p></div></div>
-    {countryCode==='NG'&&<p className="scholar-note">UniClips collects enabled Nigerian course payments through Paystack. You do not need a Stripe or Paystack merchant account for these courses. NGN Scholar allocations remain held; automatic payouts and bank onboarding are not enabled.</p>}
+    {countryCode==='NG'&&<p className="scholar-note">UniClips collects enabled Nigerian course payments through Paystack. You do not need a Stripe or Paystack merchant account for these courses. NGN Scholar allocations remain held; automatic payouts are not enabled.</p>}
+    {countryCode==='NG'&&<NigeriaPayoutDetails token={token}/>}
     {!data ? <p role="status">Earnings are unavailable right now. Please refresh to try again.</p> : <>
       <div aria-label="Currency and provider earnings">{data.breakdowns?.map(g=><p key={`${g.entity}-${g.provider}-${g.currency}`}><strong>{g.currency} ? {g.provider} ? {g.entity||'Unreconciled'}</strong>: {money(g.scholarMinor==null?null:g.scholarMinor/100,g.currency)} verified earnings; {money(g.recordedGrossMinor==null?null:g.recordedGrossMinor/100,g.currency)} recorded gross. {g.currency==='NGN'?'Held ? no automatic payouts. ':''}{g.unreconciledSales>0?`${g.unreconciledSales} unreconciled sales; earnings unavailable for those sales.`:''}</p>)}</div>
       <h3>EUR compatibility summary</h3><div className="scholar-metrics">
